@@ -5,8 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:client"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="600" Width="1000">
     <Grid>
+        <Label Content="Triviador - Connect to Game" HorizontalAlignment="Center" Margin="0,25,0,0" VerticalAlignment="Top" FontSize="36"/>
+        <TextBox x:Name="ipTextBox" HorizontalAlignment="Left" Margin="195,167,0,0" TextWrapping="Wrap" Text="&#xD;&#xA;" VerticalAlignment="Top" Width="305" FontSize="22" Height="35"/>
+        <Label Content="Enter IP:" HorizontalAlignment="Left" Margin="101,163,0,0" VerticalAlignment="Top" FontSize="22"/>
+        <TextBox x:Name="portTextBox" HorizontalAlignment="Left" Margin="195,227,0,0" TextWrapping="Wrap" Text="&#xA;" VerticalAlignment="Top" Width="305" FontSize="22" Height="35"/>
+        <Label Content="Port:" HorizontalAlignment="Left" Margin="101,223,0,0" VerticalAlignment="Top" FontSize="22"/>
+        <Button x:Name="connectButton" Content="Connect" HorizontalAlignment="Left" Margin="195,292,0,0" VerticalAlignment="Top" Height="48" Width="305" FontSize="24" Click="connectButton_Click"/>
+        <TextBox x:Name="informationTextBox" HorizontalAlignment="Left" Margin="552,167,0,0" TextWrapping="Wrap" Text="Information about connection will appear here." VerticalAlignment="Top" Width="388" Height="173" FontSize="24" IsEnabled="False"/>
 
     </Grid>
 </Window>
