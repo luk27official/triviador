@@ -130,24 +130,8 @@ namespace server
 		}
 
 		private void InformPlayersAboutConnection() {
-			int i = 0;
-			foreach(TcpClient client in acceptedClients)
-			{
-				try
-                {
-					NetworkStream stream = client.GetStream();
-					string message = Constants.P2CONNECTED;
-					byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
-					stream.Write(msg, 0, msg.Length);
-					Console.WriteLine("Sent to {0}: {1}", i + 1, message);
-					i++;
-				}
-				catch (SocketException e)
-                {
-					//one of the players disconnected... TODO: resolve what to do
-					continue;
-                }
-			}
+
+			SendMessageToAllClients(Constants.P2CONNECTED);
 
 			Thread.Sleep(1000); //wait 1s so the players load... TODO: consider receiving OK message?
 
@@ -200,17 +184,45 @@ namespace server
 			gameInformation.setBase(1, player1Base);
 			gameInformation.setBase(2, player2Base);
 
-			string message = gameInformation.EncodeInformationToString();
-			byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
+			SendMessageToAllClients(gameInformation.EncodeInformationToString());
+
+			//players now have 3 seconds to get ready for the first question of the 1st round
+			Thread.Sleep(3000);
+
+			FirstRound();
+		}
+
+		private async void FirstRound()
+        {
 			int i = 0;
+
+			//send an question to the clients...
+			string question = PickRandomNumberQuestion();
+
+			SendMessageToAllClients(question);
+
+			Thread.Sleep(13000);
+			//we have sent the question. Now we have to wait to register all answers...
+			string responseData = "";
+			Int32 bytes;
+			Byte[] data = new byte[1024];
+
+			int[] answers = new int[Constants.MAX_PLAYERS];
+			int[] times = new int[Constants.MAX_PLAYERS];
+
+			i = 0;
 
 			foreach (TcpClient client in acceptedClients)
 			{
 				try
 				{
 					NetworkStream stream = client.GetStream();
-					stream.Write(msg, 0, msg.Length);
-					Console.WriteLine("Sent to {0}: {1}", i + 1, message);
+					bytes = await stream.ReadAsync(data, 0, data.Length);
+					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+					Console.WriteLine("Received: {0}", responseData);
+					string[] splitData = responseData.Split('_');
+					answers[i] = Int32.Parse(splitData[2]);
+					times[i] = Int32.Parse(splitData[3]);
 					i++;
 				}
 				catch (SocketException e)
@@ -220,20 +232,78 @@ namespace server
 				}
 			}
 
-			//players now have 3 seconds to get ready for the first question of the 1st round
-			Thread.Sleep(3000);
+			//now it is time to compare the answers...
+			//first compare by the actual answers
+			int rightAnswer = Int32.Parse(question.Split('_')[2]);
 
-			FirstRound();
+			if (Math.Abs(answers[0] - rightAnswer) < Math.Abs(answers[1] - rightAnswer))
+            {
+				FirstRoundWin(answers, times, rightAnswer, 0, 1);
+				//then this means that the player 1 was closer, thus the winner
+			}
+			else if (Math.Abs(answers[0] - rightAnswer) == Math.Abs(answers[1] - rightAnswer))
+            {
+                //this means they were both same - compare by time
+                if (times[0] < times[1])
+                {
+					FirstRoundWin(answers, times, rightAnswer, 0, 1);
+				}   //TODO: consider case where equal - very unlikely but still possible?
+				else
+                {
+					FirstRoundWin(answers, times, rightAnswer, 1, 0);
+				}
+			}
+			else //second player was closer
+            {
+				FirstRoundWin(answers, times, rightAnswer, 1, 0);
+			}
+
 		}
 
-		private void FirstRound()
+		private async void FirstRoundWin(int[] answers, int[] times, int rightAnswer, int winnerID, int loserID)
         {
+			//send the players the info about their answers
+			string message = Constants.PREFIX_FINALANSWERS + answers[0] + "_" + answers[1] + "_" + 
+				times[0] + "_" + times[1] + "_" + rightAnswer + "_" + winnerID;
+			SendMessageToAllClients(message);
+
+			Thread.Sleep(5000);
+
+			//let the winner choose twice and the loser once
+			message = Constants.PREFIX_PICKREGION + winnerID;
+			SendMessageToAllClients(message);
+
+			//wait for the picks
+			Thread.Sleep(7000);
+			string responseData = "";
+			Int32 bytes;
+			Byte[] data = new byte[1024];
 			int i = 0;
 
-			//send an question to the clients...
-			string message = PickRandomABCDQuestion();
+			foreach (TcpClient client in acceptedClients)
+			{
+				try
+				{
+					NetworkStream stream = client.GetStream();
+					bytes = await stream.ReadAsync(data, 0, data.Length);
+					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+					Console.WriteLine("Received: {0}", responseData);
+					i++;
+				}
+				catch (SocketException e)
+				{
+					//one of the players disconnected... TODO: resolve what to do
+					continue;
+				}
+			}
+
+		}
+
+		private void SendMessageToAllClients(string message)
+        {
 			byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
 
+			int i = 0;
 			foreach (TcpClient client in acceptedClients)
 			{
 				try
@@ -254,8 +324,15 @@ namespace server
 		private string PickRandomABCDQuestion()
         {
 			Random rnd = new Random();
-			int r = rnd.Next(questionsABCDWithAnswers.Length);
+			int r = rnd.Next(questionsABCDWithAnswers.Length - 1);
 			return Constants.PREFIX_QUESTIONABCD + questionsABCDWithAnswers[r];
+		}
+
+		private string PickRandomNumberQuestion()
+        {
+			Random rnd = new Random();
+			int r = rnd.Next(questionsABCDWithAnswers.Length - 1);
+			return Constants.PREFIX_QUESTIONNUMBER + questionsNumberWithAnswers[r];
 		}
 
 		public void Stop()

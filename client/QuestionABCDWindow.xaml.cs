@@ -20,22 +20,22 @@ namespace client
     /// </summary>
     public partial class QuestionABCDWindow : Window
     {
-        private int secondsElapsed;
-        private int totalSeconds;
+        private int msElapsed;
+        private int msTotal;
         private Timer timer;
 
         public QuestionABCDWindow(string data)
         {
             InitializeComponent();
             ParseQuestion(data);
-            this.secondsElapsed = 0;
-            this.totalSeconds = 10;
+            this.msElapsed = 0;
+            this.msTotal = 1000;
             TimerHandler();
         }
 
         private void TimerHandler()
         {
-            timer = new System.Timers.Timer(1000);
+            timer = new System.Timers.Timer(10);
 
             timer.Elapsed += ChangeTimerLabel;
             timer.AutoReset = true;
@@ -44,11 +44,11 @@ namespace client
 
         private void ChangeTimerLabel(object source, ElapsedEventArgs e)
         {
-            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format("Time left: {0} seconds", totalSeconds-secondsElapsed);});
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format("Time left: {0} seconds", (msTotal - msElapsed)/100);});
 
-            secondsElapsed++;
+            msTotal++;
 
-            if(secondsElapsed > totalSeconds)
+            if(msElapsed > msTotal)
             {
                 timer.Stop();
                 timer.Dispose();

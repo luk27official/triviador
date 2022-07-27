@@ -26,6 +26,7 @@ namespace client
         private int clientID;
         private GameInformation gameInformation; //contains information about current game
         private Path[] paths;
+        private bool picking; //are we picking the region right now?
 
         public GameWindow(NetworkStream stream)
         {
@@ -55,7 +56,7 @@ namespace client
             Play();
         }
 
-        private async void Play()
+        private void Play()
         {
             WaitForGameStart();
             //after the game starts, we are waiting for next instructions
@@ -71,16 +72,51 @@ namespace client
             String responseData = String.Empty;
             Int32 bytes;
 
-            while (true) //wait for the first question
+            while (true) //answer the first question
             {
                 bytes = await stream.ReadAsync(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Console.WriteLine("Received: {0}", responseData);
                 this.gameStatusTextBox.Text = responseData;
-                if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
+                if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //handle question numeric
                 {
-                    Window questionWindow = new QuestionABCDWindow(responseData);
+                    Window questionWindow = new QuestionNumericWindow(responseData, stream, clientID);
                     questionWindow.Show();
+                    questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                    break;
+                }
+            }
+        }
+
+        private void QuestionWindow_Closed(object? sender, EventArgs e)
+        {
+            //we return from the question
+            Thread.Sleep(1000);
+
+            Byte[] data;
+            data = new Byte[1024];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            while (true)
+            {
+                bytes = stream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                Console.WriteLine("Received: {0}", responseData);
+                this.gameStatusTextBox.Text = responseData;
+                if (responseData.StartsWith(Constants.PREFIX_PICKREGION))
+                {
+                    string[] splitData = responseData.Split('_');
+                    this.gameStatusTextBox.Text = String.Format("Player {0} is supposed to pick a region!", splitData[1]);
+                    if(clientID == Int32.Parse(splitData[1]))
+                    {
+                        //we are supposed to be picking!
+                        picking = true;
+                    }
+                    else
+                    {
+                        SendPickedRegion(null);
+                    }
                     break;
                 }
             }
@@ -152,10 +188,34 @@ namespace client
             this.paths[(int)base2].Fill = new SolidColorBrush(p2BaseColor);
         }
 
+        private void SendPickedRegion(Constants.Regions? region)
+        {
+            string message = Constants.PREFIX_PICKED + clientID + "_";
+            if(region == null)
+            {
+                message += "-1";
+            }
+            else
+            {
+                message += region.Value;
+            }
+            SendMessageToServer(message);
+        }
+
+        private void SendMessageToServer(string message)
+        {
+            byte[] msg = Encoding.ASCII.GetBytes(message);
+            stream.Write(msg, 0, msg.Length);
+            Console.WriteLine("Sent to the server: {0}", message);
+        }
 
         private void CZJC_MouseDown(object sender, MouseButtonEventArgs e)
         {
-
+            if(picking && !gameInformation.P1Regions.Contains(Constants.Regions.CZJC) && !gameInformation.P2Regions.Contains(Constants.Regions.CZJC))
+            {
+                picking = false;
+                SendPickedRegion(Constants.Regions.CZJC);
+            }
         }
 
         private void CZJM_MouseDown(object sender, MouseButtonEventArgs e)

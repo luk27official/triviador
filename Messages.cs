@@ -56,5 +56,13 @@ public static class Constants
 	public const string PREFIX_GAMEUPDATE = "gameupdate_";
 
 	public const string PREFIX_QUESTIONABCD = "questionAW_";
+	public const string PREFIX_QUESTIONNUMBER = "questionNUM_";
+
+	public const string PREFIX_ANSWER = "answer_";
+
+	public const string PREFIX_FINALANSWERS = "finalanswers_";
+
+	public const string PREFIX_PICKREGION = "pickregion_";
+	public const string PREFIX_PICKED = "picked_";
 }
 
