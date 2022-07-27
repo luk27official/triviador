@@ -12,4 +12,13 @@
     <Compile Include="..\Messages.cs" Link="Messages.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="questionsABCD.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="questionsNumber.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

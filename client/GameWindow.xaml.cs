@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -48,13 +49,45 @@ namespace client
                 CZST,
 
                 CZUS,
-                CZVY };
-            WaitForGameStart();
+                CZVY 
+            };
+
+            Play();
         }
 
+        private async void Play()
+        {
+            WaitForGameStart();
+            //after the game starts, we are waiting for next instructions
+            FirstRound();
+        }
+
+        private async void FirstRound()
+        {
+            this.gameStatusTextBox.Text = "First round will start in 3 seconds. Get ready to answer!";
+
+            Byte[] data;
+            data = new Byte[1024];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            while (true) //wait for the first question
+            {
+                bytes = await stream.ReadAsync(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                Console.WriteLine("Received: {0}", responseData);
+                this.gameStatusTextBox.Text = responseData;
+                if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
+                {
+                    Window questionWindow = new QuestionABCDWindow(responseData);
+                    questionWindow.Show();
+                    break;
+                }
+            }
+        }
 
         //here the game starts - wait for an assignment of ID
-        private async void WaitForGameStart()
+        private void WaitForGameStart()
         {
             Byte[] data;
             data = new Byte[256];
@@ -63,7 +96,7 @@ namespace client
 
             while(true) //wait for the ID assignment
             {
-                bytes = await stream.ReadAsync(data, 0, data.Length);
+                bytes = stream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Console.WriteLine("Received: {0}", responseData);
                 /*here we check whether we receive the right message*/
@@ -98,10 +131,12 @@ namespace client
                     //update the game data
                     gameInformation.UpdateGameInformationFromMessage(responseData);
                     UpdateWindowFromGameInformation();
+                    break;
                 }
             }
         }
 
+        //updates the game window based on the gameinformation property
         private void UpdateWindowFromGameInformation()
         {
             this.p1pointsTextBox.Text = this.gameInformation.P1Points.ToString();

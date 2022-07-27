@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:client"
         mc:Ignorable="d"
-        Title="GameWindow" Height="600" Width="1000">
+        Title="GameWindow" Height="625" Width="1000">
     <Grid>
         <Canvas xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" x:Name="mapCanvas" Width="612.45972" Height="350.61844" Margin="194,139,194,94">
             <Canvas.Resources/>
@@ -28,6 +28,7 @@
         <TextBox x:Name="p1pointsTextBox" HorizontalAlignment="Left" Margin="223,40,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" FontSize="24" IsEnabled="False" Text="pts"/>
         <Label x:Name="Player_2_points" Content="Player 2 points:" HorizontalAlignment="Left" Margin="648,36,0,0" VerticalAlignment="Top" FontSize="24" Foreground="Blue"/>
         <TextBox x:Name="p2pointsTextBox" HorizontalAlignment="Left" Margin="836,40,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" FontSize="24" IsEnabled="False" Text="pts"/>
-        <Label x:Name="playerIDLabel" Content="My player ID is ??" HorizontalAlignment="Left" Margin="35,448,0,0" VerticalAlignment="Top" FontSize="24"/>
+        <Label x:Name="playerIDLabel" Content="My player ID is ??" HorizontalAlignment="Left" Margin="35,459,0,0" VerticalAlignment="Top" FontSize="24"/>
+        <TextBox x:Name="gameStatusTextBox" HorizontalAlignment="Left" Margin="35,522,0,0" TextWrapping="Wrap" Text="Information about the game will appear here." VerticalAlignment="Top" Width="921" Height="38" FontSize="24" IsEnabled="False"/>
     </Grid>
 </Window>

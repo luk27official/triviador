@@ -54,5 +54,7 @@ public static class Constants
 	public const string P2ASSIGN = "assign_p2";
 
 	public const string PREFIX_GAMEUPDATE = "gameupdate_";
+
+	public const string PREFIX_QUESTIONABCD = "questionAW_";
 }
 

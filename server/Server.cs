@@ -14,7 +14,9 @@ namespace server
 		TcpListener server;
 		TcpClient[] acceptedClients;
 		int acceptedClientsIndex;
-		GameInformation gameInformation;
+		GameInformation? gameInformation;
+		string[] questionsABCDWithAnswers;
+		string[] questionsNumberWithAnswers;
 
 		public bool Running
 		{
@@ -42,6 +44,8 @@ namespace server
 		{
 			try
 			{
+				questionsABCDWithAnswers = File.ReadAllLines("questionsABCD.txt");
+				questionsNumberWithAnswers = File.ReadAllLines("questionsNumber.txt");
 				server.Start();
 				Running = true;
 				while (Running)
@@ -55,9 +59,13 @@ namespace server
 			{
 				throw;
 			}
+			catch (Exception) 
+			{
+				throw;
+			}
 		}
 
-		public void SaveClient(TcpClient currentClient)
+		private void SaveClient(TcpClient currentClient)
 		{
 			if (acceptedClientsIndex > Constants.MAX_PLAYERS - 1) //a third user tries to connect, do not do anything
 			{
@@ -121,7 +129,7 @@ namespace server
 			client.Close();*/
 		}
 
-		public void InformPlayersAboutConnection() {
+		private void InformPlayersAboutConnection() {
 			int i = 0;
 			foreach(TcpClient client in acceptedClients)
 			{
@@ -146,7 +154,7 @@ namespace server
 			AssignPlayerIDs();
 		}
 
-		public void AssignPlayerIDs()
+		private void AssignPlayerIDs()
         {
 			int i = 0;
 			string[] availableIDs = new string[Constants.MAX_PLAYERS];
@@ -175,7 +183,7 @@ namespace server
 			GameStart();
 		}
 
-		public void GameStart()
+		private void GameStart()
         {
 			gameInformation = new GameInformation();
 			//firstly, we have to pick a random region and assign it to the players
@@ -212,6 +220,42 @@ namespace server
 				}
 			}
 
+			//players now have 3 seconds to get ready for the first question of the 1st round
+			Thread.Sleep(3000);
+
+			FirstRound();
+		}
+
+		private void FirstRound()
+        {
+			int i = 0;
+
+			//send an question to the clients...
+			string message = PickRandomABCDQuestion();
+			byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
+
+			foreach (TcpClient client in acceptedClients)
+			{
+				try
+				{
+					NetworkStream stream = client.GetStream();
+					stream.Write(msg, 0, msg.Length);
+					Console.WriteLine("Sent to {0}: {1}", i + 1, message);
+					i++;
+				}
+				catch (SocketException e)
+				{
+					//one of the players disconnected... TODO: resolve what to do
+					continue;
+				}
+			}
+		}
+
+		private string PickRandomABCDQuestion()
+        {
+			Random rnd = new Random();
+			int r = rnd.Next(questionsABCDWithAnswers.Length);
+			return Constants.PREFIX_QUESTIONABCD + questionsABCDWithAnswers[r];
 		}
 
 		public void Stop()
