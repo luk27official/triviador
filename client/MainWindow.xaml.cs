@@ -62,10 +62,10 @@ namespace client
                     responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                     this.informationTextBox.Text = responseData;
                     Console.WriteLine("Received: {0}", responseData);
-                    if (responseData == "Both players have connected, game starting soon.")
+                    if (responseData == Constants.P2CONNECTED)
                     {
                         //the game starts here
-                        GameWindow gw = new GameWindow();
+                        GameWindow gw = new GameWindow(stream);
                         gw.Show();
                         this.Close();
                         break;

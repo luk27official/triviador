@@ -7,4 +7,8 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Messages.cs" Link="Messages.cs" />
+  </ItemGroup>
+	
 </Project>

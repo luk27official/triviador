@@ -33,7 +33,7 @@ namespace server
 			IPAddress localAddr = IPAddress.Parse("127.0.0.1");
 
 			server = new TcpListener(localAddr, port);
-			acceptedClients = new TcpClient[2];
+			acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
 			acceptedClientsIndex = 0; //holds the number of already connected people
 		}
 
@@ -58,20 +58,20 @@ namespace server
 
 		public void SaveClient(TcpClient currentClient)
 		{
-			if (acceptedClientsIndex > 1) //a third user tries to connect, do not do anything
+			if (acceptedClientsIndex > Constants.MAX_PLAYERS - 1) //a third user tries to connect, do not do anything
 			{
 				return;
 			}
 
 			lock (acceptedClients) //prevent from more clients accessing the array at once, register them and send the information about connection
 			{
-				Console.WriteLine("accepted client " + (acceptedClientsIndex + 1).ToString());
+				Console.WriteLine("Accepted client " + (acceptedClientsIndex + 1).ToString());
 				acceptedClients[acceptedClientsIndex] = currentClient;
 
 				if (acceptedClientsIndex == 0) //inform the first user about their connection
 				{
 					NetworkStream stream = currentClient.GetStream();
-					string message = "You have been connected, waiting for player 2.";
+					string message = Constants.P1CONNECTED;
 					byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
 
 					stream.Write(data, 0, data.Length);
@@ -87,7 +87,7 @@ namespace server
 
 			//otherwise we have already one player connected, so lets
 			//inform both users they have been connected
-			if(acceptedClientsIndex == 2) 
+			if(acceptedClientsIndex == Constants.MAX_PLAYERS) 
 				InformPlayersAboutConnection();
 			/*
 			// buffer
@@ -127,12 +127,10 @@ namespace server
 				try
                 {
 					NetworkStream stream = client.GetStream();
-					string message = "Both players have connected, game starting soon.";
+					string message = Constants.P2CONNECTED;
 					byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
-
 					stream.Write(msg, 0, msg.Length);
 					Console.WriteLine("Sent to {0}: {1}", i + 1, message);
-
 					i++;
 				}
 				catch (SocketException e)
@@ -140,6 +138,36 @@ namespace server
 					//one of the players disconnected... TODO: resolve what to do
 					continue;
                 }
+			}
+
+			Thread.Sleep(1000); //wait 1s so the players load... TODO: consider receiving OK message?
+
+			AssignPlayerIDs();
+		}
+
+		public void AssignPlayerIDs()
+        {
+			int i = 0;
+			string[] availableIDs = new string[Constants.MAX_PLAYERS];
+			availableIDs[0] = Constants.P1ASSIGN;
+			availableIDs[1] = Constants.P2ASSIGN;
+
+			foreach (TcpClient client in acceptedClients)
+			{
+				try
+				{
+					NetworkStream stream = client.GetStream();
+					string message = availableIDs[i];
+					byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
+					stream.Write(msg, 0, msg.Length);
+					Console.WriteLine("Sent to {0}: {1}", i + 1, message);
+					i++;
+				}
+				catch (SocketException e)
+				{
+					//one of the players disconnected... TODO: resolve what to do
+					continue;
+				}
 			}
 		}
 
