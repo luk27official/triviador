@@ -23,11 +23,32 @@ namespace client
     {
         private NetworkStream stream; //contains stream connected to the server
         private int clientID;
+        private GameInformation gameInformation; //contains information about current game
+        private Path[] paths;
 
         public GameWindow(NetworkStream stream)
         {
             InitializeComponent();
             this.stream = stream;
+            this.gameInformation = new GameInformation();
+            this.paths = new Path[] { 
+                CZJC,
+                CZJM,
+                CZKA,
+                CZKR,
+
+                CZLI,
+                CZMO,
+                CZOL,
+                CZPA,
+
+                CZZL,
+                CZPL,
+                CZPR,
+                CZST,
+
+                CZUS,
+                CZVY };
             WaitForGameStart();
         }
 
@@ -45,6 +66,7 @@ namespace client
                 bytes = await stream.ReadAsync(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Console.WriteLine("Received: {0}", responseData);
+                /*here we check whether we receive the right message*/
                 if(responseData.StartsWith(Constants.PREFIX_ASSIGN))
                 {
                     char lastChar = responseData[responseData.Length - 1];
@@ -53,7 +75,48 @@ namespace client
                     break;
                 }
             }
+
+            //now we got the ids, so the server needs to set the right information
+            UpdateGameInformation();
         }
+
+        private async void UpdateGameInformation()
+        {
+            Byte[] data;
+            data = new Byte[1024];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            while (true) //wait for new information about the game
+            {
+                bytes = await stream.ReadAsync(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                Console.WriteLine("Received: {0}", responseData);
+                /*here we check whether we receive the right message*/
+                if (responseData.StartsWith(Constants.PREFIX_GAMEUPDATE))
+                {
+                    //update the game data
+                    gameInformation.UpdateGameInformationFromMessage(responseData);
+                    UpdateWindowFromGameInformation();
+                }
+            }
+        }
+
+        private void UpdateWindowFromGameInformation()
+        {
+            this.p1pointsTextBox.Text = this.gameInformation.P1Points.ToString();
+            this.p2pointsTextBox.Text = this.gameInformation.P2Points.ToString();
+
+            //color the bases
+            Constants.Regions base1 = this.gameInformation.P1Base;
+            Color p1BaseColor = Color.FromArgb(255, 255, 0, 0);
+            this.paths[(int)base1].Fill = new SolidColorBrush(p1BaseColor);
+
+            Constants.Regions base2 = this.gameInformation.P2Base;
+            Color p2BaseColor = Color.FromArgb(255, 0, 0, 255);
+            this.paths[(int)base2].Fill = new SolidColorBrush(p2BaseColor);
+        }
+
 
         private void CZJC_MouseDown(object sender, MouseButtonEventArgs e)
         {

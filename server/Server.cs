@@ -14,6 +14,7 @@ namespace server
 		TcpListener server;
 		TcpClient[] acceptedClients;
 		int acceptedClientsIndex;
+		GameInformation gameInformation;
 
 		public bool Running
 		{
@@ -169,6 +170,48 @@ namespace server
 					continue;
 				}
 			}
+
+			//after this the game should start!
+			GameStart();
+		}
+
+		public void GameStart()
+        {
+			gameInformation = new GameInformation();
+			//firstly, we have to pick a random region and assign it to the players
+			Array values = Enum.GetValues(typeof(Constants.Regions));
+			Random random = new Random();
+			Constants.Regions player1Base = (Constants.Regions)values.GetValue(random.Next(values.Length));
+
+			Constants.Regions player2Base = (Constants.Regions)values.GetValue(random.Next(values.Length));
+			while(player1Base == player2Base)
+            {
+				player2Base = (Constants.Regions)values.GetValue(random.Next(values.Length)); //pick another one
+			}
+
+			gameInformation.setBase(1, player1Base);
+			gameInformation.setBase(2, player2Base);
+
+			string message = gameInformation.EncodeInformationToString();
+			byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
+			int i = 0;
+
+			foreach (TcpClient client in acceptedClients)
+			{
+				try
+				{
+					NetworkStream stream = client.GetStream();
+					stream.Write(msg, 0, msg.Length);
+					Console.WriteLine("Sent to {0}: {1}", i + 1, message);
+					i++;
+				}
+				catch (SocketException e)
+				{
+					//one of the players disconnected... TODO: resolve what to do
+					continue;
+				}
+			}
+
 		}
 
 		public void Stop()
