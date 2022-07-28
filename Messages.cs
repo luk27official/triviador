@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 public static class Constants
 {
-	public enum Regions {
+	public enum Region {
 		CZJC,
 		CZJM,
 		CZKA,
@@ -22,29 +24,66 @@ public static class Constants
 		CZVY
 	};
 
-	public static Regions[][] NEIGHBORING_REGIONS => new Regions[14][] { 
+	public static Region[][] NEIGHBORING_REGIONS => new Region[14][] { 
 
-		new Regions[] { Regions.CZPL, Regions.CZST, Regions.CZVY, Regions.CZJM},
-		new Regions[] { Regions.CZJC, Regions.CZVY, Regions.CZPA, Regions.CZOL, Regions.CZZL },
-		new Regions[] { Regions.CZPL, Regions.CZUS },
-		new Regions[] { Regions.CZPA, Regions.CZST, Regions.CZLI },
+		new Region[] { Region.CZPL, Region.CZST, Region.CZVY, Region.CZJM},
+		new Region[] { Region.CZJC, Region.CZVY, Region.CZPA, Region.CZOL, Region.CZZL },
+		new Region[] { Region.CZPL, Region.CZUS },
+		new Region[] { Region.CZPA, Region.CZST, Region.CZLI },
 
-		new Regions[] { Regions.CZST, Regions.CZUS, Regions.CZKR },
-		new Regions[] { Regions.CZOL, Regions.CZZL },
-		new Regions[] { Regions.CZPA, Regions.CZJM, Regions.CZZL, Regions.CZMO },
-		new Regions[] { Regions.CZKR, Regions.CZST, Regions.CZVY, Regions.CZJM, Regions.CZOL},
+		new Region[] { Region.CZST, Region.CZUS, Region.CZKR },
+		new Region[] { Region.CZOL, Region.CZZL },
+		new Region[] { Region.CZPA, Region.CZJM, Region.CZZL, Region.CZMO },
+		new Region[] { Region.CZKR, Region.CZST, Region.CZVY, Region.CZJM, Region.CZOL},
 
-		new Regions[] { Regions.CZMO, Regions.CZOL, Regions.CZJM },
-		new Regions[] { Regions.CZJC, Regions.CZST, Regions.CZUS, Regions.CZKA },
-		new Regions[] { Regions.CZST },
-		new Regions[] { Regions.CZUS, Regions.CZLI, Regions.CZPR, Regions.CZKR, Regions.CZPA, Regions.CZVY, Regions.CZJC, Regions.CZPL },
+		new Region[] { Region.CZMO, Region.CZOL, Region.CZJM },
+		new Region[] { Region.CZJC, Region.CZST, Region.CZUS, Region.CZKA },
+		new Region[] { Region.CZST },
+		new Region[] { Region.CZUS, Region.CZLI, Region.CZPR, Region.CZKR, Region.CZPA, Region.CZVY, Region.CZJC, Region.CZPL },
 
-		new Regions[] { Regions.CZKA, Regions.CZLI, Regions.CZST, Regions.CZPL },
-		new Regions[] { Regions.CZST, Regions.CZPA, Regions.CZJC, Regions.CZJM },
+		new Region[] { Region.CZKA, Region.CZLI, Region.CZST, Region.CZPL },
+		new Region[] { Region.CZST, Region.CZPA, Region.CZJC, Region.CZJM },
 
 	};
 
+	public static bool DoRegionsNeighbor(Constants.Region region, List<Constants.Region> possibleNeighbors)
+	{
+		foreach (Constants.Region r in possibleNeighbors)
+		{
+			if (NEIGHBORING_REGIONS[(int)r].Contains(region))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static Region? PickRandomFreeNeighboringRegion(List<Region> picker, List<Region>[] all, int clientID)
+    {
+		int count = 0;
+		List<Region> populatedRegions = new List<Region>();
+		foreach (var list in all)
+        {
+			count += list.Count;
+			populatedRegions.Concat(list).ToList();
+		}
+		if (count == REGION_COUNT) return null;
+
+		var allRegions = Enum.GetValues(typeof(Constants.Region)).Cast<Constants.Region>();
+		var freeRegions = allRegions.Except(populatedRegions);
+
+		Region picked;
+		do
+		{
+			Random rnd = new Random();
+			picked = freeRegions.ElementAt(rnd.Next(freeRegions.Count()));
+		} while (!DoRegionsNeighbor(picked, all[clientID]));
+
+		return picked;
+    }
+
 	public const int MAX_PLAYERS = 2;
+	public const int REGION_COUNT = 14;
 
 	public const string P1CONNECTED = "You have been connected, waiting for player 2.";
 	public const string P2CONNECTED = "Both players have connected, game starting soon.";

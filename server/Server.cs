@@ -171,14 +171,14 @@ namespace server
         {
 			gameInformation = new GameInformation();
 			//firstly, we have to pick a random region and assign it to the players
-			Array values = Enum.GetValues(typeof(Constants.Regions));
+			Array values = Enum.GetValues(typeof(Constants.Region));
 			Random random = new Random();
-			Constants.Regions player1Base = (Constants.Regions)values.GetValue(random.Next(values.Length));
+			Constants.Region player1Base = (Constants.Region)values.GetValue(random.Next(values.Length));
 
-			Constants.Regions player2Base = (Constants.Regions)values.GetValue(random.Next(values.Length));
+			Constants.Region player2Base = (Constants.Region)values.GetValue(random.Next(values.Length));
 			while(player1Base == player2Base)
             {
-				player2Base = (Constants.Regions)values.GetValue(random.Next(values.Length)); //pick another one
+				player2Base = (Constants.Region)values.GetValue(random.Next(values.Length)); //pick another one
 			}
 
 			gameInformation.setBase(1, player1Base);
@@ -238,7 +238,7 @@ namespace server
 
 			if (Math.Abs(answers[0] - rightAnswer) < Math.Abs(answers[1] - rightAnswer))
             {
-				FirstRoundWin(answers, times, rightAnswer, 0, 1);
+				FirstRoundWin(answers, times, rightAnswer, 1, 2);
 				//then this means that the player 1 was closer, thus the winner
 			}
 			else if (Math.Abs(answers[0] - rightAnswer) == Math.Abs(answers[1] - rightAnswer))
@@ -246,16 +246,16 @@ namespace server
                 //this means they were both same - compare by time
                 if (times[0] < times[1])
                 {
-					FirstRoundWin(answers, times, rightAnswer, 0, 1);
+					FirstRoundWin(answers, times, rightAnswer, 1, 2);
 				}   //TODO: consider case where equal - very unlikely but still possible?
 				else
                 {
-					FirstRoundWin(answers, times, rightAnswer, 1, 0);
+					FirstRoundWin(answers, times, rightAnswer, 2, 1);
 				}
 			}
 			else //second player was closer
             {
-				FirstRoundWin(answers, times, rightAnswer, 1, 0);
+				FirstRoundWin(answers, times, rightAnswer, 2, 1);
 			}
 
 		}
@@ -269,13 +269,20 @@ namespace server
 
 			Thread.Sleep(5000);
 
+			SendFirstRoundPickAnnouncement(winnerID);
+			SendFirstRoundPickAnnouncement(winnerID);
+			SendFirstRoundPickAnnouncement(loserID);
+		}
+
+		private void SendFirstRoundPickAnnouncement(int clientID)
+        {
 			//let the winner choose twice and the loser once
-			message = Constants.PREFIX_PICKREGION + winnerID;
+			string message = Constants.PREFIX_PICKREGION + clientID;
 			SendMessageToAllClients(message);
 
 			//wait for the picks
 			Thread.Sleep(7000);
-			string responseData = "";
+			string[] receivedData = new string[Constants.MAX_PLAYERS];
 			Int32 bytes;
 			Byte[] data = new byte[1024];
 			int i = 0;
@@ -285,9 +292,9 @@ namespace server
 				try
 				{
 					NetworkStream stream = client.GetStream();
-					bytes = await stream.ReadAsync(data, 0, data.Length);
-					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine("Received: {0}", responseData);
+					bytes = stream.Read(data, 0, data.Length);
+					receivedData[i] = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+					Console.WriteLine("Received: {0}", receivedData[i]);
 					i++;
 				}
 				catch (SocketException e)
@@ -296,7 +303,28 @@ namespace server
 					continue;
 				}
 			}
+			UpdateGameInformationBasedOnPickFirstRound(receivedData);
+			Thread.Sleep(2000);
+		}
 
+		private void UpdateGameInformationBasedOnPickFirstRound(string[] data)
+        {
+			//Received: picked_1_CZST
+			foreach(string current in data)
+            {
+				string[] splitData = current.Split('_');
+				if (splitData[2] != "-1")
+				{
+					int player = Int32.Parse(splitData[1]);
+					if (Enum.TryParse(splitData[2], out Constants.Region reg))
+					{
+						this.gameInformation.addPoints(player, 200);
+						this.gameInformation.addRegion(player, reg);
+						SendMessageToAllClients(gameInformation.EncodeInformationToString());
+						break;
+					}
+				}
+			}
 		}
 
 		private void SendMessageToAllClients(string message)

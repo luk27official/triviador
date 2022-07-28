@@ -108,7 +108,7 @@ namespace client
             string[] splitData = data.Split('_');
             App.Current.Dispatcher.Invoke((Action)delegate { this.p1label.Content = String.Format("P1 answer and time: {0}, {1}", splitData[1], splitData[3]); });
             App.Current.Dispatcher.Invoke((Action)delegate { this.p2label.Content = String.Format("P2 answer and time: {0}, {1}", splitData[2], splitData[4]); });
-            App.Current.Dispatcher.Invoke((Action)delegate { this.playerWinlabel.Content = String.Format("The right answer was: {0} --> P{1} Wins!", splitData[5], Int32.Parse(splitData[6]) + 1); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.playerWinlabel.Content = String.Format("The right answer was: {0} --> P{1} Wins!", splitData[5], Int32.Parse(splitData[6])); });
 
             //wait 5s so the clients can see the final answers
             Thread.Sleep(5000);
@@ -128,7 +128,7 @@ namespace client
             stopwatch.Stop();
             if(!Int32.TryParse(answerTxtBox.Text, out int ans))
             {
-                ans = 0; //if invalid number pass an 0
+                ans = 0; //if invalid value pass an 0
             }
             string message = Constants.PREFIX_ANSWER + clientID + "_" + ans.ToString() + "_" + stopwatch.ElapsedMilliseconds;
             byte[] msg = Encoding.ASCII.GetBytes(message);
