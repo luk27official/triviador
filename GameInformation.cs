@@ -39,7 +39,7 @@ public class GameInformation
     public void setBase(int playerID, Constants.Region region)
     { 
         this.Bases[playerID - 1] = region;
-        this.Regions[playerID - 1].Add(region);
+        if(!this.Regions[playerID - 1].Contains(region)) this.Regions[playerID - 1].Add(region);
     }
 
     public void addPoints(int playerID, int pts)
@@ -49,7 +49,7 @@ public class GameInformation
 
     public void addRegion(int playerID, Constants.Region region)
     {
-        this.Regions[playerID - 1].Add(region);
+        if(!this.Regions[playerID - 1].Contains(region)) this.Regions[playerID - 1].Add(region);
     }
 
     public string EncodeInformationToString()
@@ -125,7 +125,7 @@ public class GameInformation
         {
             if(Enum.TryParse(s, out Constants.Region reg))
             {
-                this.Regions[0].Add(reg);
+                if (!this.Regions[0].Contains(reg)) this.Regions[0].Add(reg);
             }
         }
 
@@ -134,7 +134,7 @@ public class GameInformation
         {
             if (Enum.TryParse(s, out Constants.Region reg))
             {
-                this.Regions[1].Add(reg);
+                if (!this.Regions[1].Contains(reg)) this.Regions[1].Add(reg);
             }
         }
 
@@ -143,7 +143,7 @@ public class GameInformation
         {
             if (Enum.TryParse(s, out Constants.Region reg))
             {
-                this.HighValueRegions.Add(reg);
+                if (!this.HighValueRegions.Contains(reg)) this.HighValueRegions.Add(reg);
             }
         }
     }

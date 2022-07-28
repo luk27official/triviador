@@ -28,6 +28,7 @@ namespace client
         private GameInformation gameInformation; //contains information about current game
         private Path[] paths;
         private bool picking; //are we picking the region right now?
+        private Window questionWindow;
 
         public GameWindow(NetworkStream stream)
         {
@@ -62,11 +63,37 @@ namespace client
             WaitForGameStart();
             //after the game starts, we are waiting for next instructions
             FirstRound();
+
+            //50s is the length of the first round
+            System.Timers.Timer timer = new System.Timers.Timer(50000);
+
+            timer.Enabled = true;
+            timer.Elapsed += FirstRound;
+            timer.AutoReset = false;
+
+            //100s for the second one
+            System.Timers.Timer timer2 = new System.Timers.Timer(100000);
+
+            timer2.Enabled = true;
+            timer2.Elapsed += FirstRound;
+            timer2.AutoReset = false;
+
+            //150s for the third one
+            System.Timers.Timer timer3 = new System.Timers.Timer(150000);
+
+            timer3.Enabled = true;
+            timer3.Elapsed += FirstRound;
+            timer3.AutoReset = false;
+        }
+
+        private void FirstRound(object? sender, System.Timers.ElapsedEventArgs e)
+        {
+            FirstRound();
         }
 
         private async void FirstRound()
         {
-            this.gameStatusTextBox.Text = "First round will start in 3 seconds. Get ready to answer!";
+            App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = "The round will start in 3 seconds. Get ready to answer!"; });
 
             Byte[] data;
             data = new Byte[1024];
@@ -78,12 +105,18 @@ namespace client
                 bytes = await stream.ReadAsync(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Debug.WriteLine("Received: " + responseData);
-                this.gameStatusTextBox.Text = responseData;
+                App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
                 if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //handle question numeric
                 {
-                    Window questionWindow = new QuestionNumericWindow(responseData, stream, clientID);
-                    questionWindow.Show();
-                    questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow = new QuestionNumericWindow(responseData, stream, clientID);
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow.Show();
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                    });
                     break;
                 }
             }
@@ -107,14 +140,11 @@ namespace client
 
         private void PickingFirstRound(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            Debug.WriteLine("elapsed");
             PickingFirstRound();
         }
 
         private async void PickingFirstRound()
         {
-            //Thread.Sleep(1000);
-
             Byte[] data;
             data = new Byte[1024];
             String responseData = String.Empty;
@@ -156,11 +186,29 @@ namespace client
             App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = "Wait for the server to update information!"; });
             if (picking)
             {
+                picking = false;
+                foreach(var x in gameInformation.Regions[clientID - 1])
+                {
+                    Debug.WriteLine(x);
+                }
+
+                Debug.WriteLine("----");
+
+                foreach(var x in gameInformation.Regions)
+                {
+                    foreach(var y in x)
+                    {
+                        Debug.WriteLine(y);
+                    }
+                    Debug.WriteLine("----");
+                }
+
                 Constants.Region? reg = Constants.PickRandomFreeNeighboringRegion(gameInformation.Regions[clientID - 1], gameInformation.Regions, clientID - 1);
+                Debug.WriteLine(reg);
                 SendPickedRegion(reg);
             }
 
-            Thread.Sleep(1000); //wait 1s for the server to send an update and then update the information
+            //Thread.Sleep(1000); //wait 1s for the server to send an update and then update the information
             App.Current.Dispatcher.Invoke((Action)delegate { UpdateGameInformation(); });
         }
 
@@ -221,8 +269,12 @@ namespace client
             this.p2pointsTextBox.Text = this.gameInformation.Points[1].ToString();
 
             Brush[] brushes = new Brush[Constants.MAX_PLAYERS];
-            brushes[0] = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0));
-            brushes[1] = new SolidColorBrush(Color.FromArgb(255, 0, 0, 255));
+            brushes[0] = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0)); //red
+            brushes[1] = new SolidColorBrush(Color.FromArgb(255, 0, 0, 255)); //blue
+
+            Brush[] baseBrushes = new Brush[Constants.MAX_PLAYERS];
+            baseBrushes[0] = new SolidColorBrush(Color.FromArgb(255, 125, 30, 30)); //dark red
+            baseBrushes[1] = new SolidColorBrush(Color.FromArgb(255, 30, 30, 125)); //dark blue
 
             int i = 0; 
             foreach (var list in this.gameInformation.Regions)
@@ -234,17 +286,28 @@ namespace client
                 i++;
             }
 
+            Constants.Region base1 = this.gameInformation.Bases[0];
+            this.paths[(int)base1].Fill = baseBrushes[0];
+
+            Constants.Region base2 = this.gameInformation.Bases[1];
+            this.paths[(int)base2].Fill = baseBrushes[1];
+
+
             //color the bases
+            /*
             Color border = Color.FromArgb(255, 255, 255, 0);
 
             Constants.Region base1 = this.gameInformation.Bases[0];
             this.paths[(int)base1].Stroke = new SolidColorBrush(border);
-            this.paths[(int)base1].StrokeThickness = 3;
+            this.paths[(int)base1].StrokeThickness = 2;
 
 
             Constants.Region base2 = this.gameInformation.Bases[1];
             this.paths[(int)base2].Stroke = new SolidColorBrush(border);
-            this.paths[(int)base1].StrokeThickness = 3;
+            this.paths[(int)base2].StrokeThickness = 2;
+            */
+
+
         }
 
         private void SendPickedRegion(Constants.Region? region)
@@ -277,7 +340,7 @@ namespace client
             List<Constants.Region> populatedRegions = new List<Constants.Region>();
             foreach (var list in this.gameInformation.Regions)
             {
-                populatedRegions.Concat(list).ToList();
+                populatedRegions.AddRange(list);
             }
             var freeRegions = allRegions.Except(populatedRegions);
             var myRegions = this.gameInformation.Regions[clientID - 1];
@@ -356,7 +419,7 @@ namespace client
 
         private void CZPL_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            HandleRegionClick(sender, Constants.Region.CZJC);
+            HandleRegionClick(sender, Constants.Region.CZPL);
 
         }
 

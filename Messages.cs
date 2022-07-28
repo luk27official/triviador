@@ -60,26 +60,34 @@ public static class Constants
 
 	public static Region? PickRandomFreeNeighboringRegion(List<Region> picker, List<Region>[] all, int clientID)
     {
-		int count = 0;
 		List<Region> populatedRegions = new List<Region>();
 		foreach (var list in all)
         {
-			count += list.Count;
-			populatedRegions.Concat(list).ToList();
+			populatedRegions.AddRange(list);
 		}
-		if (count == REGION_COUNT) return null;
+		if (populatedRegions.Count == REGION_COUNT) return null;
 
 		var allRegions = Enum.GetValues(typeof(Constants.Region)).Cast<Constants.Region>();
-		var freeRegions = allRegions.Except(populatedRegions);
 
-		Region picked;
-		do
-		{
-			Random rnd = new Random();
-			picked = freeRegions.ElementAt(rnd.Next(freeRegions.Count()));
-		} while (!DoRegionsNeighbor(picked, all[clientID]));
+		var freeRegions = new List<Region>();
 
-		return picked;
+		foreach (var region in allRegions)
+        {
+			if (populatedRegions.Contains(region)) continue;
+			freeRegions.Add(region);
+        }
+
+		Random rnd = new Random();
+
+		var shuffled = freeRegions.OrderBy(_ => rnd.Next()).ToList();
+
+		foreach (var region in shuffled)
+        {
+			if (DoRegionsNeighbor(region, all[clientID])) return region;
+        }
+
+		int random = rnd.Next(shuffled.Count());
+		return shuffled.ElementAt(random);
     }
 
 	public const int MAX_PLAYERS = 2;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Net;
 using System.Text;
@@ -17,6 +18,7 @@ namespace server
 		GameInformation? gameInformation;
 		string[] questionsABCDWithAnswers;
 		string[] questionsNumberWithAnswers;
+		Stopwatch sw;
 
 		public bool Running
 		{
@@ -189,8 +191,37 @@ namespace server
 			//players now have 3 seconds to get ready for the first question of the 1st round
 			Thread.Sleep(3000);
 
+			sw = new();
+			sw.Start();
+
+			//50s is the length of the first round
+			System.Timers.Timer timer = new System.Timers.Timer(50000);
+
+			timer.Enabled = true;
+			timer.Elapsed += FirstRound;
+			timer.AutoReset = false;
+
+			//100s for the second one
+			System.Timers.Timer timer2 = new System.Timers.Timer(100000);
+
+			timer2.Enabled = true;
+			timer2.Elapsed += FirstRound;
+			timer2.AutoReset = false;
+
+			//150s for the third one
+			System.Timers.Timer timer3 = new System.Timers.Timer(150000);
+
+			timer3.Enabled = true;
+			timer3.Elapsed += FirstRound;
+			timer3.AutoReset = false;
+
 			FirstRound();
 		}
+
+		private void FirstRound(object? sender, System.Timers.ElapsedEventArgs e)
+		{
+			FirstRound();
+        }
 
 		private async void FirstRound()
         {
@@ -260,7 +291,7 @@ namespace server
 
 		}
 
-		private async void FirstRoundWin(int[] answers, int[] times, int rightAnswer, int winnerID, int loserID)
+		private void FirstRoundWin(int[] answers, int[] times, int rightAnswer, int winnerID, int loserID)
         {
 			//send the players the info about their answers
 			string message = Constants.PREFIX_FINALANSWERS + answers[0] + "_" + answers[1] + "_" + 
@@ -272,6 +303,8 @@ namespace server
 			SendFirstRoundPickAnnouncement(winnerID);
 			SendFirstRoundPickAnnouncement(winnerID);
 			SendFirstRoundPickAnnouncement(loserID);
+			sw.Stop();
+			Console.WriteLine(sw.ElapsedMilliseconds);
 		}
 
 		private void SendFirstRoundPickAnnouncement(int clientID)
