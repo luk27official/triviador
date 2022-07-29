@@ -111,5 +111,19 @@ public static class Constants
 
 	public const string PREFIX_PICKREGION = "pickregion_";
 	public const string PREFIX_PICKED = "picked_";
+
+	public const int DELAY_FASTUPDATE_MS = 1000;
+	public const int DELAY_FIRSTROUND_FIRSTQUESTION = 3000;
+	public const int DELAY_FIRSTROUND_WAITFORANSWERS = 13000;
+	public const int DELAY_FIRSTROUND_SHOWANSWERS = 5000;
+	public const int DELAY_FIRSTROUND_PICKS = 7000;
+	public const int DELAY_FIRSTROUND_WAITFORCLIENTUPDATE = 2000;
+
+	public const int DELAY_CLIENT_PICK = 5000;
+	public const int DELAY_CLIENT_NEXTPICK = 8000;
+
+	public const int LENGTH_FIRSTROUND_TOTAL = 50000;
+
+	public const int POINTS_FIRSTROUND = 200;
 }
 

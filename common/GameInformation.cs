@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 public class GameInformation
 {
-
     public int[] Points { get; private set; }
 
     public List<Constants.Region>[] Regions { get; private set; }

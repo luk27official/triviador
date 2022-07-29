@@ -15,7 +15,7 @@ namespace server
 		TcpListener server;
 		TcpClient[] acceptedClients;
 		int acceptedClientsIndex;
-		GameInformation? gameInformation;
+		GameInformation gameInformation;
 		string[] questionsABCDWithAnswers;
 		string[] questionsNumberWithAnswers;
 		Stopwatch sw;
@@ -40,6 +40,7 @@ namespace server
 			server = new TcpListener(localAddr, port);
 			acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
 			acceptedClientsIndex = 0; //holds the number of already connected people
+			gameInformation = new GameInformation();
 		}
 
 		public void Start()
@@ -100,44 +101,18 @@ namespace server
 			//inform both users they have been connected
 			if(acceptedClientsIndex == Constants.MAX_PLAYERS) 
 				InformPlayersAboutConnection();
-			/*
-			// buffer
-			Byte[] bytes = new Byte[256];
-			string data = null;
-
-			// Get a stream object for reading and writing
-			NetworkStream stream = client.GetStream();
-
-			int i;
-
-			// Loop to receive all the data sent by the client.
-			while ((i = stream.Read(bytes, 0, bytes.Length)) != 0)
-			{
-				// Translate data bytes to a ASCII string.
-				data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
-				Console.WriteLine("Received: {0}", data);
-
-				// Process the data sent by the client.
-				data = data.ToUpper();
-
-				byte[] msg = System.Text.Encoding.ASCII.GetBytes(data);
-
-				// Send back a response.
-				stream.Write(msg, 0, msg.Length);
-				Console.WriteLine("Sent: {0}", data);
-			}
-
-			Shutdown and end connection
-			client.Close();*/
+			
 		}
 
 		private void InformPlayersAboutConnection() {
 
 			SendMessageToAllClients(Constants.P2CONNECTED);
 
-			Thread.Sleep(1000); //wait 1s so the players load... TODO: consider receiving OK message?
+			Thread.Sleep(Constants.DELAY_FASTUPDATE_MS); //wait 1s so the players load... TODO: consider receiving OK message?
 
 			AssignPlayerIDs();
+			//after this the game should start!
+			GameStart();
 		}
 
 		private void AssignPlayerIDs()
@@ -164,22 +139,18 @@ namespace server
 					continue;
 				}
 			}
-
-			//after this the game should start!
-			GameStart();
 		}
 
-		private void GameStart()
+		private void AssignBaseRegions()
         {
-			gameInformation = new GameInformation();
 			//firstly, we have to pick a random region and assign it to the players
 			Array values = Enum.GetValues(typeof(Constants.Region));
 			Random random = new Random();
 			Constants.Region player1Base = (Constants.Region)values.GetValue(random.Next(values.Length));
 
 			Constants.Region player2Base = (Constants.Region)values.GetValue(random.Next(values.Length));
-			while(player1Base == player2Base)
-            {
+			while (player1Base == player2Base || Constants.DoRegionsNeighbor(player1Base, new List<Constants.Region>() { player2Base }))
+			{
 				player2Base = (Constants.Region)values.GetValue(random.Next(values.Length)); //pick another one
 			}
 
@@ -187,35 +158,38 @@ namespace server
 			gameInformation.setBase(2, player2Base);
 
 			SendMessageToAllClients(gameInformation.EncodeInformationToString());
+		}
+
+		private void CreateTimedEvent(int countdownMs, System.Timers.ElapsedEventHandler e)
+        {
+			System.Timers.Timer timer = new System.Timers.Timer(countdownMs);
+
+			timer.Enabled = true;
+			timer.Elapsed += e;
+			timer.AutoReset = false;
+		}
+
+		private void GameStart()
+        {
+			AssignBaseRegions();
 
 			//players now have 3 seconds to get ready for the first question of the 1st round
-			Thread.Sleep(3000);
+			Thread.Sleep(Constants.DELAY_FIRSTROUND_FIRSTQUESTION);
 
 			sw = new();
 			sw.Start();
 
-			//50s is the length of the first round
-			System.Timers.Timer timer = new System.Timers.Timer(50000);
+			//first round
+			CreateTimedEvent(1, FirstRound);
 
-			timer.Enabled = true;
-			timer.Elapsed += FirstRound;
-			timer.AutoReset = false;
+			//50s is the length of the first round
+			CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL, FirstRound);
 
 			//100s for the second one
-			System.Timers.Timer timer2 = new System.Timers.Timer(100000);
-
-			timer2.Enabled = true;
-			timer2.Elapsed += FirstRound;
-			timer2.AutoReset = false;
+			CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL*2, FirstRound);
 
 			//150s for the third one
-			System.Timers.Timer timer3 = new System.Timers.Timer(150000);
-
-			timer3.Enabled = true;
-			timer3.Elapsed += FirstRound;
-			timer3.AutoReset = false;
-
-			FirstRound();
+			CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL*3, FirstRound);
 		}
 
 		private void FirstRound(object? sender, System.Timers.ElapsedEventArgs e)
@@ -223,25 +197,51 @@ namespace server
 			FirstRound();
         }
 
+		private void DecideWinnerAndInform(int[] answers, int[] times, string question)
+        {
+			int rightAnswer = Int32.Parse(question.Split('_')[2]);
+
+			if (Math.Abs(answers[0] - rightAnswer) < Math.Abs(answers[1] - rightAnswer))
+			{
+				FirstRoundWin(answers, times, rightAnswer, 1, 2);
+				//then this means that the player 1 was closer, thus the winner
+			}
+			else if (Math.Abs(answers[0] - rightAnswer) == Math.Abs(answers[1] - rightAnswer))
+			{
+				//this means they were both same - compare by time
+				if (times[0] < times[1])
+				{
+					FirstRoundWin(answers, times, rightAnswer, 1, 2);
+				}   //TODO: consider case where equal - very unlikely but still possible?
+				else
+				{
+					FirstRoundWin(answers, times, rightAnswer, 2, 1);
+				}
+			}
+			else //second player was closer
+			{
+				FirstRoundWin(answers, times, rightAnswer, 2, 1);
+			}
+		}
+
 		private async void FirstRound()
         {
-			int i = 0;
 
 			//send an question to the clients...
 			string question = PickRandomNumberQuestion();
 
 			SendMessageToAllClients(question);
 
-			Thread.Sleep(13000);
+			Thread.Sleep(Constants.DELAY_FIRSTROUND_WAITFORANSWERS);
 			//we have sent the question. Now we have to wait to register all answers...
-			string responseData = "";
+			string responseData;
 			Int32 bytes;
 			Byte[] data = new byte[1024];
 
 			int[] answers = new int[Constants.MAX_PLAYERS];
 			int[] times = new int[Constants.MAX_PLAYERS];
 
-			i = 0;
+			int i = 0;
 
 			foreach (TcpClient client in acceptedClients)
 			{
@@ -265,29 +265,7 @@ namespace server
 
 			//now it is time to compare the answers...
 			//first compare by the actual answers
-			int rightAnswer = Int32.Parse(question.Split('_')[2]);
-
-			if (Math.Abs(answers[0] - rightAnswer) < Math.Abs(answers[1] - rightAnswer))
-            {
-				FirstRoundWin(answers, times, rightAnswer, 1, 2);
-				//then this means that the player 1 was closer, thus the winner
-			}
-			else if (Math.Abs(answers[0] - rightAnswer) == Math.Abs(answers[1] - rightAnswer))
-            {
-                //this means they were both same - compare by time
-                if (times[0] < times[1])
-                {
-					FirstRoundWin(answers, times, rightAnswer, 1, 2);
-				}   //TODO: consider case where equal - very unlikely but still possible?
-				else
-                {
-					FirstRoundWin(answers, times, rightAnswer, 2, 1);
-				}
-			}
-			else //second player was closer
-            {
-				FirstRoundWin(answers, times, rightAnswer, 2, 1);
-			}
+			DecideWinnerAndInform(answers, times, question);
 
 		}
 
@@ -298,13 +276,13 @@ namespace server
 				times[0] + "_" + times[1] + "_" + rightAnswer + "_" + winnerID;
 			SendMessageToAllClients(message);
 
-			Thread.Sleep(5000);
+			Thread.Sleep(Constants.DELAY_FIRSTROUND_SHOWANSWERS);
 
 			SendFirstRoundPickAnnouncement(winnerID);
 			SendFirstRoundPickAnnouncement(winnerID);
 			SendFirstRoundPickAnnouncement(loserID);
 			sw.Stop();
-			Console.WriteLine(sw.ElapsedMilliseconds);
+			Console.WriteLine("First round total time elapsed (ms): " + sw.ElapsedMilliseconds);
 		}
 
 		private void SendFirstRoundPickAnnouncement(int clientID)
@@ -314,7 +292,7 @@ namespace server
 			SendMessageToAllClients(message);
 
 			//wait for the picks
-			Thread.Sleep(7000);
+			Thread.Sleep(Constants.DELAY_FIRSTROUND_PICKS);
 			string[] receivedData = new string[Constants.MAX_PLAYERS];
 			Int32 bytes;
 			Byte[] data = new byte[1024];
@@ -337,7 +315,7 @@ namespace server
 				}
 			}
 			UpdateGameInformationBasedOnPickFirstRound(receivedData);
-			Thread.Sleep(2000);
+			Thread.Sleep(Constants.DELAY_FIRSTROUND_WAITFORCLIENTUPDATE);
 		}
 
 		private void UpdateGameInformationBasedOnPickFirstRound(string[] data)
@@ -351,7 +329,7 @@ namespace server
 					int player = Int32.Parse(splitData[1]);
 					if (Enum.TryParse(splitData[2], out Constants.Region reg))
 					{
-						this.gameInformation.addPoints(player, 200);
+						this.gameInformation.addPoints(player, Constants.POINTS_FIRSTROUND);
 						this.gameInformation.addRegion(player, reg);
 						SendMessageToAllClients(gameInformation.EncodeInformationToString());
 						break;

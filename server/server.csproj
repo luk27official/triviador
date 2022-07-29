@@ -8,8 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\GameInformation.cs" Link="GameInformation.cs" />
-    <Compile Include="..\Messages.cs" Link="Messages.cs" />
+    <ProjectReference Include="..\common\common.csproj" />
   </ItemGroup>
 
   <ItemGroup>

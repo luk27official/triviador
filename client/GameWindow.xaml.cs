@@ -58,32 +58,30 @@ namespace client
             Play();
         }
 
+        private void CreateTimedEvent(int countdownMs, System.Timers.ElapsedEventHandler e)
+        {
+            System.Timers.Timer timer = new System.Timers.Timer(countdownMs);
+
+            timer.Enabled = true;
+            timer.Elapsed += e;
+            timer.AutoReset = false;
+        }
+
         private void Play()
         {
             WaitForGameStart();
             //after the game starts, we are waiting for next instructions
+            //first round
             FirstRound();
 
             //50s is the length of the first round
-            System.Timers.Timer timer = new System.Timers.Timer(50000);
-
-            timer.Enabled = true;
-            timer.Elapsed += FirstRound;
-            timer.AutoReset = false;
+            CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL, FirstRound);
 
             //100s for the second one
-            System.Timers.Timer timer2 = new System.Timers.Timer(100000);
-
-            timer2.Enabled = true;
-            timer2.Elapsed += FirstRound;
-            timer2.AutoReset = false;
+            CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL * 2, FirstRound);
 
             //150s for the third one
-            System.Timers.Timer timer3 = new System.Timers.Timer(150000);
-
-            timer3.Enabled = true;
-            timer3.Elapsed += FirstRound;
-            timer3.AutoReset = false;
+            CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL * 3, FirstRound);
         }
 
         private void FirstRound(object? sender, System.Timers.ElapsedEventArgs e)
@@ -127,15 +125,9 @@ namespace client
             //we return from the question -> picking regions three times!
             PickingFirstRound();
 
-            System.Timers.Timer timer1 = new System.Timers.Timer(8000);
-            timer1.Enabled = true;
-            timer1.Elapsed += PickingFirstRound;
-            timer1.AutoReset = false;
+            CreateTimedEvent(Constants.DELAY_CLIENT_NEXTPICK, PickingFirstRound);
 
-            System.Timers.Timer timer2 = new System.Timers.Timer(16000);
-            timer2.Enabled = true;
-            timer2.Elapsed += PickingFirstRound;
-            timer2.AutoReset = false;
+            CreateTimedEvent(Constants.DELAY_CLIENT_NEXTPICK*2, PickingFirstRound);
         }
 
         private void PickingFirstRound(object? sender, System.Timers.ElapsedEventArgs e)
@@ -175,7 +167,7 @@ namespace client
             }
 
             //after 5s lets see if it picked something, if not, then pick random
-            System.Timers.Timer timer = new System.Timers.Timer(5000);
+            System.Timers.Timer timer = new System.Timers.Timer(Constants.DELAY_CLIENT_PICK);
             timer.Enabled = true;
             timer.Elapsed += Timer_Elapsed;
             timer.AutoReset = false;
@@ -187,7 +179,7 @@ namespace client
             if (picking)
             {
                 picking = false;
-                foreach(var x in gameInformation.Regions[clientID - 1])
+                /*foreach(var x in gameInformation.Regions[clientID - 1])
                 {
                     Debug.WriteLine(x);
                 }
@@ -201,7 +193,7 @@ namespace client
                         Debug.WriteLine(y);
                     }
                     Debug.WriteLine("----");
-                }
+                }*/
 
                 Constants.Region? reg = Constants.PickRandomFreeNeighboringRegion(gameInformation.Regions[clientID - 1], gameInformation.Regions, clientID - 1);
                 Debug.WriteLine(reg);
