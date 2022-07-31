@@ -116,8 +116,6 @@ namespace client
 
             List<Button> buttons = new List<Button> { this.answerAbtn, this.answerBbtn, this.answerCbtn, this.answerDbtn };
 
-            bool bothCorrect = (p1Answer == p2Answer);
-
             foreach(Button button in buttons)
             {
                 App.Current.Dispatcher.Invoke((Action)delegate {
@@ -126,7 +124,8 @@ namespace client
                         button.BorderThickness = new Thickness(5);
                         button.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 50, 255, 50));
                     }
-                    else if (button.Content.ToString() == p1Answer && bothCorrect)
+
+                    if (button.Content.ToString() == p1Answer && (p1Answer == p2Answer))
                     {
                         LinearGradientBrush linGrBrush = new LinearGradientBrush(
                             Color.FromArgb(255, 255, 0, 0),   // Opaque red

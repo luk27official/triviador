@@ -92,6 +92,9 @@ namespace client
             SecondRound();
             Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX5");
 
+            SecondRound();
+            Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX5");
+
         }
 
         private void PickingSecondRound()
@@ -176,7 +179,6 @@ namespace client
             //then wait for the question
 
 
-            //in the second round, firstly we have to wait for the attack message...
             Byte[] data;
             data = new Byte[1024];
             String responseData = String.Empty;
@@ -205,7 +207,17 @@ namespace client
                 }
             }
 
-            Debug.WriteLine(this.inAnotherWindow);
+            SecondRoundAfterFirstQuestion();
+        }
+
+        private void SecondRoundAfterFirstQuestion()
+        {
+            Byte[] data;
+            data = new Byte[1024];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            Debug.WriteLine("HALO");
             //here we have to wait in the thread because there is an question open.
             SpinWait.SpinUntil(() => this.inAnotherWindow == false);
 
@@ -235,9 +247,47 @@ namespace client
                     App.Current.Dispatcher.Invoke((Action)delegate {
                         this.questionWindow.Closed += QuestionWindowABCD_Round2_Closed; //when it closes, it means that we/oponnent are about to pick a region
                     });
+
+                    SecondRoundAfterFirstQuestion();
                     break;
                 }
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER))
+                {
+                    this.inAnotherWindow = true;
+
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow = new QuestionNumericWindow(responseData, stream, clientID - 1);
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow.Show();
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow.Closed += QuestionWindowABCD_Round2_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                    }); //TODO: change this??
+                    break;
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEUPDATE))
+                {
+                    Debug.WriteLine("asdasd");
+                    //update the game data
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        gameInformation.UpdateGameInformationFromMessage(responseData);
+                        UpdateWindowFromGameInformation();
+                    });
+                    return;
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER))
+                {
+                    //TODO: handle game over
+                }
             }
+
+            Debug.WriteLine(this.inAnotherWindow);
+            //here we have to wait in the thread because there is an question open.
+            SpinWait.SpinUntil(() => this.inAnotherWindow == false);
+            App.Current.Dispatcher.Invoke((Action)delegate {
+                UpdateGameInformation();
+            });
         }
 
         private void QuestionWindowABCD_Round2_Closed(object? sender, EventArgs e)

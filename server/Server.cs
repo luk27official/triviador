@@ -196,7 +196,11 @@ namespace server
 
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 			SecondRound(1, 2);
-			
+
+			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+			SecondRound(2, 1);
+
+
 			//SecondRound(2);
 
 			/*
