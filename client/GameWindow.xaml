@@ -30,5 +30,9 @@
         <TextBox x:Name="p2pointsTextBox" HorizontalAlignment="Left" Margin="836,40,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" FontSize="24" IsEnabled="False" Text="pts"/>
         <Label x:Name="playerIDLabel" Content="My player ID is ??" HorizontalAlignment="Left" Margin="35,459,0,0" VerticalAlignment="Top" FontSize="24"/>
         <TextBox x:Name="gameStatusTextBox" HorizontalAlignment="Left" Margin="35,522,0,0" TextWrapping="Wrap" Text="Information about the game will appear here." VerticalAlignment="Top" Width="921" Height="38" FontSize="24" IsEnabled="False"/>
+        <Label x:Name="Player_1_hp" Content="Base health:" HorizontalAlignment="Left" Margin="35,75,0,0" VerticalAlignment="Top" FontSize="24" Foreground="Red"/>
+        <TextBox x:Name="p1HealthTextBox" HorizontalAlignment="Left" Margin="223,79,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" FontSize="24" IsEnabled="False" Text="hp"/>
+        <Label x:Name="Player_2_hp" Content="Base health:" HorizontalAlignment="Left" Margin="648,79,0,0" VerticalAlignment="Top" FontSize="24" Foreground="Blue"/>
+        <TextBox x:Name="p2HealthTextBox" HorizontalAlignment="Left" Margin="836,83,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" FontSize="24" IsEnabled="False" Text="hp"/>
     </Grid>
 </Window>

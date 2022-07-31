@@ -173,12 +173,27 @@ namespace server
         {
 			AssignBaseRegions();
 
-			//players now have 3 seconds to get ready for the first question of the 1st round
-			Thread.Sleep(Constants.DELAY_FIRSTROUND_FIRSTQUESTION);
-
 			sw = new();
 			sw.Start();
 
+			//players now have 3 seconds to get ready for the first question of the 1st round
+			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+			FirstRound();
+			Console.WriteLine("done r1");
+
+			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+			FirstRound();
+			Console.WriteLine("done r2");
+
+			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+			FirstRound();
+			Console.WriteLine("done r3");
+
+			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+			FirstRound();
+			Console.WriteLine("done r4");
+
+			/*
 			//first round
 			CreateTimedEvent(1, FirstRound);
 
@@ -190,6 +205,50 @@ namespace server
 
 			//150s for the third one
 			CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL*3, FirstRound);
+
+			//200s for the second round
+			CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL * 4, SecondRound);
+			*/
+
+			//CreateTimedEvent(1, SecondRound);
+		}
+
+		private void SecondRound(object? sender, System.Timers.ElapsedEventArgs e)
+		{
+			SecondRound();
+		}
+
+		private async void SecondRound()
+        {
+			//let the winner choose twice and the loser once
+			string message = Constants.PREFIX_PICKREGION + "1";
+			SendMessageToAllClients(message);
+
+			//wait for the picks
+			Thread.Sleep(Constants.DELAY_FIRSTROUND_PICKS);
+			string[] receivedData = new string[Constants.MAX_PLAYERS];
+			Int32 bytes;
+			Byte[] data = new byte[1024];
+			int i = 0;
+
+			foreach (TcpClient client in acceptedClients)
+			{
+				try
+				{
+					NetworkStream stream = client.GetStream();
+					bytes = stream.Read(data, 0, data.Length);
+					receivedData[i] = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+					Console.WriteLine("Received: {0}", receivedData[i]);
+					i++;
+				}
+				catch (SocketException e)
+				{
+					//one of the players disconnected... TODO: resolve what to do
+					continue;
+				}
+			}
+			UpdateGameInformationBasedOnPickFirstRound(receivedData);
+			Thread.Sleep(Constants.DELAY_FIRSTROUND_WAITFORCLIENTUPDATE);
 		}
 
 		private void FirstRound(object? sender, System.Timers.ElapsedEventArgs e)
@@ -224,9 +283,8 @@ namespace server
 			}
 		}
 
-		private async void FirstRound()
+		private void FirstRound()
         {
-
 			//send an question to the clients...
 			string question = PickRandomNumberQuestion();
 
@@ -248,7 +306,7 @@ namespace server
 				try
 				{
 					NetworkStream stream = client.GetStream();
-					bytes = await stream.ReadAsync(data, 0, data.Length);
+					bytes = stream.Read(data, 0, data.Length);
 					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
 					Console.WriteLine("Received: {0}", responseData);
 					string[] splitData = responseData.Split('_');

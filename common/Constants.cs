@@ -58,6 +58,41 @@ public static class Constants
 		return false;
 	}
 
+	public static Region? PickRandomEnemyRegion(List<Region>[] all, int clientID, bool neighboring)
+    {
+		List<Region> populatedRegions = new List<Region>();
+		foreach (var list in all)
+		{
+			populatedRegions.AddRange(list);
+		}
+		if (populatedRegions.Count == REGION_COUNT) return null;
+
+		var allRegions = Enum.GetValues(typeof(Constants.Region)).Cast<Constants.Region>();
+
+		var enemyRegions = new List<Region>();
+
+		foreach(var region in allRegions)
+        {
+			if (all[clientID].Contains(region)) continue;
+			enemyRegions.Add(region);
+        }
+
+		Random rnd = new Random();
+
+		var shuffled = enemyRegions.OrderBy(_ => rnd.Next()).ToList();
+
+		if(neighboring)
+        {
+			foreach (var region in shuffled)
+			{
+				if (DoRegionsNeighbor(region, all[clientID])) return region;
+			}
+		}
+
+		int random = rnd.Next(shuffled.Count());
+		return shuffled.ElementAt(random);
+	}
+
 	public static Region? PickRandomFreeNeighboringRegion(List<Region> picker, List<Region>[] all, int clientID)
     {
 		List<Region> populatedRegions = new List<Region>();
@@ -118,6 +153,8 @@ public static class Constants
 	public const int DELAY_FIRSTROUND_SHOWANSWERS = 5000;
 	public const int DELAY_FIRSTROUND_PICKS = 7000;
 	public const int DELAY_FIRSTROUND_WAITFORCLIENTUPDATE = 2000;
+
+	public const int DELAY_BETWEEN_ROUNDS = 3000;
 
 	public const int DELAY_CLIENT_PICK = 5000;
 	public const int DELAY_CLIENT_NEXTPICK = 8000;
