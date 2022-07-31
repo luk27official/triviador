@@ -51,6 +51,21 @@ public class GameInformation
         if(!this.Regions[playerID - 1].Contains(region)) this.Regions[playerID - 1].Add(region);
     }
 
+    public void addHighValueRegion(Constants.Region region)
+    {
+        if (!this.HighValueRegions.Contains(region)) this.HighValueRegions.Add(region);
+    }
+
+    public void removeRegion(int playerID, Constants.Region region)
+    {
+        if (this.Regions[playerID - 1].Contains(region)) this.Regions[playerID - 1].Remove(region);
+    }
+
+    public void decreaseBaseHealth(int playerID)
+    {
+        this.BaseHealths[playerID - 1] -= 1;
+    }
+
     public string EncodeInformationToString()
     {
         StringBuilder sb = new StringBuilder();

@@ -177,7 +177,7 @@ namespace server
 			sw.Start();
 
 			//players now have 3 seconds to get ready for the first question of the 1st round
-			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+			/*Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 			FirstRound();
 			Console.WriteLine("done r1");
 
@@ -192,6 +192,12 @@ namespace server
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 			FirstRound();
 			Console.WriteLine("done r4");
+			*/
+
+			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+			SecondRound(1, 2);
+			
+			//SecondRound(2);
 
 			/*
 			//first round
@@ -213,15 +219,9 @@ namespace server
 			//CreateTimedEvent(1, SecondRound);
 		}
 
-		private void SecondRound(object? sender, System.Timers.ElapsedEventArgs e)
-		{
-			SecondRound();
-		}
-
-		private async void SecondRound()
+		private Constants.Region PicksSecondRound(int clientID)
         {
-			//let the winner choose twice and the loser once
-			string message = Constants.PREFIX_PICKREGION + "1";
+			string message = Constants.PREFIX_PICKREGION + clientID.ToString();
 			SendMessageToAllClients(message);
 
 			//wait for the picks
@@ -247,50 +247,153 @@ namespace server
 					continue;
 				}
 			}
-			UpdateGameInformationBasedOnPickFirstRound(receivedData);
-			Thread.Sleep(Constants.DELAY_FIRSTROUND_WAITFORCLIENTUPDATE);
+
+			//now we received the info that the player picked some region to attack, lets store it
+			Constants.Region attackedRegion = GetPickedRegionRoundTwo(receivedData);
+			//the return value should be never null!
+			string attackMessage = Constants.PREFIX_ATTACK + attackedRegion.ToString();
+			SendMessageToAllClients(attackMessage);
+			return attackedRegion;
 		}
 
-		private void FirstRound(object? sender, System.Timers.ElapsedEventArgs e)
-		{
-			FirstRound();
-        }
-
-		private void DecideWinnerAndInform(int[] answers, int[] times, string question)
+		private void SecondRound(int attackerID, int otherID)
         {
-			int rightAnswer = Int32.Parse(question.Split('_')[2]);
+			//wait for the picks and send an message which region is being attacked
+			Constants.Region reg = PicksSecondRound(attackerID);
 
-			if (Math.Abs(answers[0] - rightAnswer) < Math.Abs(answers[1] - rightAnswer))
-			{
-				FirstRoundWin(answers, times, rightAnswer, 1, 2);
-				//then this means that the player 1 was closer, thus the winner
-			}
-			else if (Math.Abs(answers[0] - rightAnswer) == Math.Abs(answers[1] - rightAnswer))
-			{
-				//this means they were both same - compare by time
-				if (times[0] < times[1])
-				{
-					FirstRoundWin(answers, times, rightAnswer, 1, 2);
-				}   //TODO: consider case where equal - very unlikely but still possible?
-				else
-				{
-					FirstRoundWin(answers, times, rightAnswer, 2, 1);
-				}
-			}
-			else //second player was closer
-			{
-				FirstRoundWin(answers, times, rightAnswer, 2, 1);
-			}
-		}
-
-		private void FirstRound()
-        {
-			//send an question to the clients...
-			string question = PickRandomNumberQuestion();
-
+			//wait 3s and then send the question
+			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+			string question = PickRandomABCDQuestion();
 			SendMessageToAllClients(question);
 
-			Thread.Sleep(Constants.DELAY_FIRSTROUND_WAITFORANSWERS);
+			//now receive the answers
+			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
+			//we have sent the question. Now we have to wait to register all answers...
+			string responseData;
+			Int32 bytes;
+			Byte[] data = new byte[1024];
+
+			string[] answers = new string[Constants.MAX_PLAYERS];
+			int i = 0;
+
+			foreach (TcpClient client in acceptedClients)
+			{
+				try
+				{
+					NetworkStream stream = client.GetStream();
+					bytes = stream.Read(data, 0, data.Length);
+					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+					Console.WriteLine("Received: {0}", responseData);
+					string[] splitData = responseData.Split('_');
+					answers[i] = splitData[2];
+					i++;
+				}
+				catch (SocketException e)
+				{
+					//one of the players disconnected... TODO: resolve what to do
+					continue;
+				}
+			}
+
+			//now it is time to send back answers...
+			DecideSecondRoundWinnerFirstQuestion(answers, question, attackerID, otherID, reg);
+		}
+
+		private void DecideSecondRoundWinnerFirstQuestion(string[] answers, string question, int attackerID, int defenderID, Constants.Region attackedRegion)
+        {
+			//finalanswers_correctANS_P1ANS_P2ANS
+			string[] splitQuestion = question.Split('_');
+			string correct = splitQuestion[2];
+			string p1Answer = answers[0];
+			string p2Answer = answers[1];
+
+			SendMessageToAllClients(Constants.PREFIX_FINALANSWERS + correct + '_' + p1Answer + '_' + p2Answer);
+
+			//we've just sent the information about the correct answers...
+			//we have to calculate the actual winner
+
+			Thread.Sleep(Constants.DELAY_SHOWANSWERS);
+
+
+			//here the client can receive 3 types of answers!!
+			//1) end game
+			//2) game info update
+			//3) new question (num/ABCD)
+
+			if(correct == answers[attackerID - 1] && correct != answers[defenderID - 1])
+            {
+				SecondRoundAttackerWin(attackerID, defenderID, attackedRegion);
+			}
+			else if(correct == answers[attackerID - 1] && correct == answers[defenderID - 1])
+            {
+				//both answered correctly
+				//show a number question
+				SecondRoundAnotherQuestion(attackerID, defenderID, attackedRegion);
+            }
+			else if (correct == answers[defenderID - 1] && correct != answers[attackerID - 1])
+            {
+				SecondRoundDefenderWin(defenderID);
+			}
+			else
+            {
+				//no one answered correctly
+				//do nothing lol
+				SecondRoundNoOneAnsweredCorrectly();
+			}
+		}
+
+		private void SecondRoundAttackerWin(int attackerID, int defenderID, Constants.Region attackedRegion)
+        {
+			//only the attacker answered correctly
+			//either way change the points + owner of the region or subtract 1HP from the base
+			//and dont forget to add it to the high value regions
+			if (attackedRegion == this.gameInformation.Bases[defenderID - 1])
+			{
+				this.gameInformation.decreaseBaseHealth(defenderID);
+				if (this.gameInformation.BaseHealths[defenderID - 1] == 0)
+				{
+					SendMessageToAllClients(GameOverMessage(attackerID));
+				}
+				SecondRound(attackerID, defenderID);
+			}
+			else
+			{
+				if (this.gameInformation.HighValueRegions.Contains(attackedRegion))
+				{
+					this.gameInformation.addPoints(defenderID, -400);
+				}
+				else
+				{
+					this.gameInformation.addPoints(defenderID, -200);
+				}
+				this.gameInformation.addPoints(attackerID, 400);
+				this.gameInformation.addRegion(attackerID, attackedRegion);
+				this.gameInformation.removeRegion(defenderID, attackedRegion);
+				this.gameInformation.addHighValueRegion(attackedRegion);
+				SendMessageToAllClients(gameInformation.EncodeInformationToString());
+			}
+		}
+
+		private void SecondRoundDefenderWin(int defenderID)
+        {
+			//defender answered ok
+			//just update points (+100) def
+			this.gameInformation.addPoints(defenderID, 100);
+			SendMessageToAllClients(gameInformation.EncodeInformationToString());
+		}
+
+		private void SecondRoundNoOneAnsweredCorrectly()
+        {
+			SendMessageToAllClients(gameInformation.EncodeInformationToString());
+		}
+
+		private void SecondRoundAnotherQuestion(int attackerID, int defenderID, Constants.Region attackedRegion)
+        {
+			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+			string question = PickRandomNumberQuestion();
+			SendMessageToAllClients(question);
+
+			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 			//we have sent the question. Now we have to wait to register all answers...
 			string responseData;
 			Int32 bytes;
@@ -323,18 +426,136 @@ namespace server
 
 			//now it is time to compare the answers...
 			//first compare by the actual answers
-			DecideWinnerAndInform(answers, times, question);
+			DecideNumberQuestionWinnerAndInform(answers, times, question, SecondRoundWin, attackedRegion, defenderID, attackerID);
+		}
+
+		private void SecondRoundWin(int[] answers, int[] times, int rightAnswer, int winnerID, int loserID, Constants.Region? attackedRegion, int? defenderID, int? attackerID)
+		{
+			if(attackedRegion == null || defenderID == null || attackerID == null) return;
+			//send the players the info about their answers
+			string message = Constants.PREFIX_FINALANSWERS + answers[0] + "_" + answers[1] + "_" +
+				times[0] + "_" + times[1] + "_" + rightAnswer + "_" + winnerID;
+			SendMessageToAllClients(message);
+
+
+			Thread.Sleep(Constants.DELAY_SHOWANSWERS);
+
+			if(winnerID == attackerID)
+            {
+				SecondRoundAttackerWin((int)attackerID, (int)defenderID, (Constants.Region)attackedRegion);
+			}
+			else
+            {
+				SecondRoundDefenderWin((int)defenderID);
+            }
+		}
+
+		private Constants.Region GetPickedRegionRoundTwo(string[] data)
+        {
+			//Received: picked_1_CZST
+			foreach (string current in data)
+			{
+				string[] splitData = current.Split('_');
+				if (splitData[2] != "-1")
+				{
+					int player = Int32.Parse(splitData[1]);
+					if (Enum.TryParse(splitData[2], out Constants.Region reg))
+					{
+						return reg;
+					}
+				}
+			}
+
+			return Constants.Region.CZZL; //WILL NOT HAPPEN!
+		}
+
+		private void FirstRound(object? sender, System.Timers.ElapsedEventArgs e)
+		{
+			FirstRound();
+        }
+
+		private void DecideNumberQuestionWinnerAndInform(int[] answers, int[] times, string question, 
+			Action<int[], int[], int, int, int, Constants.Region?, int?, int?> decideWin, 
+			Constants.Region? region, int? defenderID, int? attackerID)
+        {
+			int rightAnswer = Int32.Parse(question.Split('_')[2]);
+
+			if (Math.Abs(answers[0] - rightAnswer) < Math.Abs(answers[1] - rightAnswer))
+			{
+				decideWin(answers, times, rightAnswer, 1, 2, region, defenderID, attackerID);
+				//then this means that the player 1 was closer, thus the winner
+			}
+			else if (Math.Abs(answers[0] - rightAnswer) == Math.Abs(answers[1] - rightAnswer))
+			{
+				//this means they were both same - compare by time
+				if (times[0] < times[1])
+				{
+					decideWin(answers, times, rightAnswer, 1, 2, region, defenderID, attackerID);
+				}   //TODO: consider case where equal - very unlikely but still possible?
+				else
+				{
+					decideWin(answers, times, rightAnswer, 2, 1, region, defenderID, attackerID);
+				}
+			}
+			else //second player was closer
+			{
+				decideWin(answers, times, rightAnswer, 2, 1, region, defenderID, attackerID);
+			}
+		}
+
+		private void FirstRound()
+        {
+			//send an question to the clients...
+			string question = PickRandomNumberQuestion();
+
+			SendMessageToAllClients(question);
+
+			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
+			//we have sent the question. Now we have to wait to register all answers...
+			string responseData;
+			Int32 bytes;
+			Byte[] data = new byte[1024];
+
+			int[] answers = new int[Constants.MAX_PLAYERS];
+			int[] times = new int[Constants.MAX_PLAYERS];
+
+			int i = 0;
+
+			foreach (TcpClient client in acceptedClients)
+			{
+				try
+				{
+					NetworkStream stream = client.GetStream();
+					bytes = stream.Read(data, 0, data.Length);
+					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+					Console.WriteLine("Received: {0}", responseData);
+					string[] splitData = responseData.Split('_');
+					answers[i] = Int32.Parse(splitData[2]);
+					times[i] = Int32.Parse(splitData[3]);
+					i++;
+				}
+				catch (SocketException e)
+				{
+					//one of the players disconnected... TODO: resolve what to do
+					continue;
+				}
+			}
+
+			//now it is time to compare the answers...
+			//first compare by the actual answers
+			DecideNumberQuestionWinnerAndInform(answers, times, question, FirstRoundWin, null, null, null);
 
 		}
 
-		private void FirstRoundWin(int[] answers, int[] times, int rightAnswer, int winnerID, int loserID)
+		private void FirstRoundWin(int[] answers, int[] times, int rightAnswer, int winnerID, int loserID, Constants.Region? reg, int? x, int? y)
         {
+			//we dont need the region, x and y here
 			//send the players the info about their answers
 			string message = Constants.PREFIX_FINALANSWERS + answers[0] + "_" + answers[1] + "_" + 
 				times[0] + "_" + times[1] + "_" + rightAnswer + "_" + winnerID;
 			SendMessageToAllClients(message);
 
-			Thread.Sleep(Constants.DELAY_FIRSTROUND_SHOWANSWERS);
+			Thread.Sleep(Constants.DELAY_SHOWANSWERS);
 
 			SendFirstRoundPickAnnouncement(winnerID);
 			SendFirstRoundPickAnnouncement(winnerID);
@@ -373,7 +594,7 @@ namespace server
 				}
 			}
 			UpdateGameInformationBasedOnPickFirstRound(receivedData);
-			Thread.Sleep(Constants.DELAY_FIRSTROUND_WAITFORCLIENTUPDATE);
+			Thread.Sleep(Constants.DELAY_WAITFORCLIENTUPDATE);
 		}
 
 		private void UpdateGameInformationBasedOnPickFirstRound(string[] data)
@@ -416,6 +637,11 @@ namespace server
 					continue;
 				}
 			}
+		}
+
+		private string GameOverMessage(int winnerID)
+        {
+			return Constants.PREFIX_GAMEOVER + winnerID;
 		}
 
 		private string PickRandomABCDQuestion()

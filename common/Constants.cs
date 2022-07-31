@@ -147,12 +147,16 @@ public static class Constants
 	public const string PREFIX_PICKREGION = "pickregion_";
 	public const string PREFIX_PICKED = "picked_";
 
+	public const string PREFIX_ATTACK = "attack_";
+
+	public const string PREFIX_GAMEOVER = "gameover_";
+
 	public const int DELAY_FASTUPDATE_MS = 1000;
 	public const int DELAY_FIRSTROUND_FIRSTQUESTION = 3000;
-	public const int DELAY_FIRSTROUND_WAITFORANSWERS = 13000;
-	public const int DELAY_FIRSTROUND_SHOWANSWERS = 5000;
+	public const int DELAY_WAITFORANSWERS = 13000;
+	public const int DELAY_SHOWANSWERS = 5000;
 	public const int DELAY_FIRSTROUND_PICKS = 7000;
-	public const int DELAY_FIRSTROUND_WAITFORCLIENTUPDATE = 2000;
+	public const int DELAY_WAITFORCLIENTUPDATE = 2000;
 
 	public const int DELAY_BETWEEN_ROUNDS = 3000;
 

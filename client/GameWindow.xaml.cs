@@ -76,7 +76,7 @@ namespace client
             //after the game starts, we are waiting for next instructions
             
             //first round
-            FirstRound();
+            /*FirstRound();
             Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX");
 
             FirstRound();
@@ -87,67 +87,14 @@ namespace client
 
             FirstRound();
             Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX4");
-
-
-
-            /*
-            //50s is the length of the first round
-            CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL, FirstRound);
-
-            //100s for the second one
-            CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL * 2, FirstRound);
-
-            //150s for the third one
-            CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL * 3, FirstRound);
-
-            //200s for the first attack round!
-            CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL * 4, SecondRound);
-            
-            //SecondRound();
             */
-        }
 
-        private void SecondRound(object? sender, System.Timers.ElapsedEventArgs e)
-        {
             SecondRound();
+            Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX5");
+
         }
 
-        private async void SecondRound()
-        {
-            App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = "The second round will start in 3 seconds. Get ready!"; });
-
-            PickingSecondRound();
-
-            Debug.WriteLine("aaa");
-
-            /*Byte[] data;
-            data = new Byte[1024];
-            String responseData = String.Empty;
-            Int32 bytes;
-
-            while (true) //answer the first question
-            {
-                bytes = await stream.ReadAsync(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                Debug.WriteLine("Received: " + responseData);
-                App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
-                if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //handle question numeric
-                {
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this.questionWindow = new QuestionNumericWindow(responseData, stream, clientID);
-                    });
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this.questionWindow.Show();
-                    });
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this.questionWindow.Closed += QuestionWindow_Round1_Closed; //when it closes, it means that we/oponnent are about to pick a region
-                    });
-                    break;
-                }
-            }*/
-        }
-
-        private async void PickingSecondRound()
+        private void PickingSecondRound()
         {
             Byte[] data;
             data = new Byte[1024];
@@ -156,9 +103,9 @@ namespace client
 
             while (true)
             {
-                bytes = await stream.ReadAsync(data, 0, data.Length);
+                bytes = stream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                Debug.WriteLine("Received: " + responseData);
+                Debug.WriteLine("Received 2ndRnd: " + responseData);
                 App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
 
                 if (responseData.StartsWith(Constants.PREFIX_PICKREGION))
@@ -179,16 +126,124 @@ namespace client
             }
 
             //after 5s lets see if it picked something, if not, then pick random
-            System.Timers.Timer timer = new System.Timers.Timer(Constants.DELAY_CLIENT_PICK);
-            timer.Enabled = true;
-            timer.Elapsed += TimerForPicking_Round2_Elapsed;
-            timer.AutoReset = false;
+            Thread.Sleep(Constants.DELAY_CLIENT_PICK);
+
+            App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = "Wait for the server to update information!"; });
+            if (picking)
+            {
+                picking = false;
+                Constants.Region? reg = Constants.PickRandomFreeNeighboringRegion(gameInformation.Regions[clientID - 1], gameInformation.Regions, clientID - 1);
+                Debug.WriteLine(reg);
+                SendPickedRegion(reg);
+            }
+
+            //now lets wait for the attack order
         }
 
-
-        private void FirstRound(object? sender, System.Timers.ElapsedEventArgs e)
+        private void WaitForAttack()
         {
-            FirstRound();
+            Byte[] data;
+            data = new Byte[1024];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            while (true)
+            {
+                bytes = stream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
+
+                if (responseData.StartsWith(Constants.PREFIX_ATTACK))
+                {
+                    string[] splitData = responseData.Split('_');
+                    Enum.TryParse(splitData[1], out Constants.Region reg);
+                    App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format("Region {0} under attack!", splitData[1]); });
+                    App.Current.Dispatcher.Invoke((Action)delegate { this.paths[(int)reg].Fill = new SolidColorBrush(Color.FromArgb(255, 0, 255, 0)); });
+                    break;
+                }
+            }
+        }
+
+        private void SecondRound()
+        {
+            //firstly wait for the pick...
+            //TODO: change this 
+            PickingSecondRound();
+            //then wait for the attack
+            WaitForAttack();
+            //3s to show the players
+            Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+            //then wait for the question
+
+
+            //in the second round, firstly we have to wait for the attack message...
+            Byte[] data;
+            data = new Byte[1024];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            while (true) //answer the first question
+            {
+                bytes = stream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                Debug.WriteLine("Received: " + responseData);
+                App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
+                if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
+                {
+                    this.inAnotherWindow = true;
+
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow = new QuestionABCDWindow(responseData, stream, clientID - 1);
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow.Show();
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow.Closed += QuestionWindowABCD_Round2_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                    });
+                    break;
+                }
+            }
+
+            Debug.WriteLine(this.inAnotherWindow);
+            //here we have to wait in the thread because there is an question open.
+            SpinWait.SpinUntil(() => this.inAnotherWindow == false);
+
+            //now we have to decide what to do...
+            //there are 3 main options:
+            //here the client can receive 3 types of answers!!
+            //1) end game
+            //2) game info update
+            //3) new question (num/ABCD)
+
+            while (true) //answer the first question
+            {
+                bytes = stream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                Debug.WriteLine("Received: " + responseData);
+                App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
+                if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
+                {
+                    this.inAnotherWindow = true;
+
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow = new QuestionABCDWindow(responseData, stream, clientID - 1);
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow.Show();
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this.questionWindow.Closed += QuestionWindowABCD_Round2_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                    });
+                    break;
+                }
+            }
+        }
+
+        private void QuestionWindowABCD_Round2_Closed(object? sender, EventArgs e)
+        {
+            //we return from the question -> picking regions three times!
+            this.inAnotherWindow = false;
         }
 
         private void FirstRound()
@@ -224,9 +279,10 @@ namespace client
             }
 
             Debug.WriteLine(this.inAnotherWindow);
+            //here we have to wait in the thread because there is an question open.
             SpinWait.SpinUntil(() => this.inAnotherWindow == false);
 
-            //after waiting for the answer we wait for the pick instruction
+            //after waiting for the answer we wait for the pick instruction 3 times
             PickingFirstRound();
             PickingFirstRound();
             PickingFirstRound();
@@ -234,17 +290,8 @@ namespace client
 
         private void QuestionWindow_Round1_Closed(object? sender, EventArgs e)
         {
-            this.inAnotherWindow = false;
             //we return from the question -> picking regions three times!
-
-            //CreateTimedEvent(Constants.DELAY_CLIENT_NEXTPICK, PickingFirstRound);
-
-            //CreateTimedEvent(Constants.DELAY_CLIENT_NEXTPICK*2, PickingFirstRound);
-        }
-
-        private void PickingFirstRound(object? sender, System.Timers.ElapsedEventArgs e)
-        {
-            PickingFirstRound();
+            this.inAnotherWindow = false;
         }
 
         private void PickingFirstRound()
@@ -278,13 +325,9 @@ namespace client
                 }
             }
 
+            //after 5s lets see if it picked something, if not, then pick random
             Thread.Sleep(Constants.DELAY_CLIENT_PICK);
 
-            //after 5s lets see if it picked something, if not, then pick random
-            /*System.Timers.Timer timer = new System.Timers.Timer(Constants.DELAY_CLIENT_PICK);
-            timer.Enabled = true;
-            timer.Elapsed += TimerForPicking_Round1_Elapsed;
-            timer.AutoReset = false;*/
             App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = "Wait for the server to update information!"; });
             if (picking)
             {
@@ -314,36 +357,6 @@ namespace client
             App.Current.Dispatcher.Invoke((Action)delegate { UpdateGameInformation(); });
         }
 
-        private void TimerForPicking_Round1_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
-        {
-            /*App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = "Wait for the server to update information!"; });
-            if (picking)
-            {
-                picking = false;
-                /*foreach(var x in gameInformation.Regions[clientID - 1])
-                {
-                    Debug.WriteLine(x);
-                }
-
-                Debug.WriteLine("----");
-
-                foreach(var x in gameInformation.Regions)
-                {
-                    foreach(var y in x)
-                    {
-                        Debug.WriteLine(y);
-                    }
-                    Debug.WriteLine("----");
-                }
-
-                Constants.Region? reg = Constants.PickRandomFreeNeighboringRegion(gameInformation.Regions[clientID - 1], gameInformation.Regions, clientID - 1);
-                Debug.WriteLine(reg);
-                SendPickedRegion(reg);
-            }
-
-            //Thread.Sleep(1000); //wait 1s for the server to send an update and then update the information
-            App.Current.Dispatcher.Invoke((Action)delegate { UpdateGameInformation(); });*/
-        }
 
         //here the game starts - wait for an assignment of ID
         private void WaitForGameStart()
