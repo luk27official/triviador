@@ -193,12 +193,28 @@ namespace server
 			FirstRound();
 			Console.WriteLine("done r4");
 			*/
+			for(int i = 0; i < 4; i++)
+            {
+				Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+				FirstRound();
+			}
 
-			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-			SecondRound(1, 2);
+			for(int i = 0; i < 2; i++)
+            {
+				Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+				SecondRound(1, 2, false);
 
-			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-			SecondRound(2, 1);
+				Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+				SecondRound(2, 1, false);
+
+				Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+				SecondRound(2, 1, false);
+
+				Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+				SecondRound(1, 2, false);
+			}
+			//noone has won till now -> decide the winner based on points
+			DecideWinnerBasedOnPoints();
 
 
 			//SecondRound(2);
@@ -222,6 +238,25 @@ namespace server
 
 			//CreateTimedEvent(1, SecondRound);
 		}
+
+		private void DecideWinnerBasedOnPoints()
+        {
+			string message = Constants.PREFIX_GAMEOVER;
+
+            if (gameInformation.Points[0] > gameInformation.Points[1])
+            {
+				message += "1";
+            }
+			else if (gameInformation.Points[0] == gameInformation.Points[1])
+            {
+				message += "-1"; //tie
+            }
+			else
+            {
+				message += "2";
+            }
+			SendMessageToAllClients(message);
+        }
 
 		private Constants.Region PicksSecondRound(int clientID)
         {
@@ -260,10 +295,18 @@ namespace server
 			return attackedRegion;
 		}
 
-		private void SecondRound(int attackerID, int otherID)
+		private void SecondRound(int attackerID, int otherID, bool repeatedBaseAttack)
         {
-			//wait for the picks and send an message which region is being attacked
-			Constants.Region reg = PicksSecondRound(attackerID);
+			Constants.Region reg;
+			if (repeatedBaseAttack)
+            {
+				reg = this.gameInformation.Bases[otherID - 1];
+            }
+			else
+            {
+				//wait for the picks and send an message which region is being attacked
+				reg = PicksSecondRound(attackerID);
+			}
 
 			//wait 3s and then send the question
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
@@ -358,7 +401,7 @@ namespace server
 				{
 					SendMessageToAllClients(GameOverMessage(attackerID));
 				}
-				SecondRound(attackerID, defenderID);
+				SecondRound(attackerID, defenderID, true);
 			}
 			else
 			{

@@ -60,13 +60,6 @@ public static class Constants
 
 	public static Region? PickRandomEnemyRegion(List<Region>[] all, int clientID, bool neighboring)
     {
-		List<Region> populatedRegions = new List<Region>();
-		foreach (var list in all)
-		{
-			populatedRegions.AddRange(list);
-		}
-		if (populatedRegions.Count == REGION_COUNT) return null;
-
 		var allRegions = Enum.GetValues(typeof(Constants.Region)).Cast<Constants.Region>();
 
 		var enemyRegions = new List<Region>();
@@ -125,6 +118,15 @@ public static class Constants
 		return shuffled.ElementAt(random);
     }
 
+	public enum GameStatus
+    {
+		Loading,
+		FirstRound,
+		SecondRound_FirstVersion,
+		SecondRound_SecondVersion,
+		GameOver
+    }
+
 	public const int MAX_PLAYERS = 2;
 	public const int REGION_COUNT = 14;
 
@@ -158,7 +160,7 @@ public static class Constants
 	public const int DELAY_FIRSTROUND_PICKS = 7000;
 	public const int DELAY_WAITFORCLIENTUPDATE = 2000;
 
-	public const int DELAY_BETWEEN_ROUNDS = 3000;
+	public const int DELAY_BETWEEN_ROUNDS = 4000;
 
 	public const int DELAY_CLIENT_PICK = 5000;
 	public const int DELAY_CLIENT_NEXTPICK = 8000;

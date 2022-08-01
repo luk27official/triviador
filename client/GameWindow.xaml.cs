@@ -30,11 +30,13 @@ namespace client
         private bool picking; //are we picking the region right now?
         private Window questionWindow;
         private bool inAnotherWindow;
+        private Constants.GameStatus gameStatus;
 
         public GameWindow(NetworkStream stream)
         {
             InitializeComponent();
             this.stream = stream;
+            this.gameStatus = Constants.GameStatus.Loading;
             this.gameInformation = new GameInformation();
             this.paths = new Path[] { 
                 CZJC,
@@ -74,27 +76,24 @@ namespace client
         private void Play()
         {
             //after the game starts, we are waiting for next instructions
-            
-            //first round
-            /*FirstRound();
-            Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX");
 
-            FirstRound();
-            Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX2");
+            this.gameStatus = Constants.GameStatus.FirstRound;
+            for (int i = 0; i < 4; i++)
+            {
+                FirstRound();
+            }
 
-            FirstRound();
-            Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX3");
+            this.gameStatus = Constants.GameStatus.SecondRound_FirstVersion;
+            for (int i = 0; i < 6; i++)
+            {
+                SecondRound();
+            }
 
-            FirstRound();
-            Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX4");
-            */
-
-            SecondRound();
-            Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX5");
-
-            SecondRound();
-            Debug.WriteLine("XXXXXXXXXXXXXXXXXXXXXX5");
-
+            this.gameStatus = Constants.GameStatus.SecondRound_SecondVersion;
+            for (int i = 0; i < 2; i++)
+            {
+                SecondRound();
+            }
         }
 
         private void PickingSecondRound()
@@ -135,7 +134,16 @@ namespace client
             if (picking)
             {
                 picking = false;
-                Constants.Region? reg = Constants.PickRandomFreeNeighboringRegion(gameInformation.Regions[clientID - 1], gameInformation.Regions, clientID - 1);
+                Constants.Region? reg;
+                if (gameStatus == Constants.GameStatus.SecondRound_FirstVersion)
+                {
+                    reg = Constants.PickRandomEnemyRegion(gameInformation.Regions, clientID - 1, true);
+                }
+                else
+                {
+                    reg = Constants.PickRandomEnemyRegion(gameInformation.Regions, clientID - 1, false);
+                }
+                //TODO: fix
                 Debug.WriteLine(reg);
                 SendPickedRegion(reg);
             }
@@ -177,8 +185,11 @@ namespace client
             //3s to show the players
             Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
             //then wait for the question
+            SecondRoundWaitForQuestion();
+        }
 
-
+        private void SecondRoundWaitForQuestion()
+        {
             Byte[] data;
             data = new Byte[1024];
             String responseData = String.Empty;
@@ -236,6 +247,7 @@ namespace client
                 App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
                 if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
                 {
+                    //this means that some base was damaged...
                     this.inAnotherWindow = true;
 
                     App.Current.Dispatcher.Invoke((Action)delegate {
@@ -249,7 +261,7 @@ namespace client
                     });
 
                     SecondRoundAfterFirstQuestion();
-                    break;
+                    return;
                 }
                 else if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER))
                 {
@@ -272,13 +284,14 @@ namespace client
                     //update the game data
                     App.Current.Dispatcher.Invoke((Action)delegate {
                         gameInformation.UpdateGameInformationFromMessage(responseData);
+                        Thread.Sleep(Constants.DELAY_FASTUPDATE_MS);
                         UpdateWindowFromGameInformation();
                     });
                     return;
                 }
                 else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER))
                 {
-                    //TODO: handle game over
+                    GameOver(responseData);
                 }
             }
 
@@ -452,10 +465,43 @@ namespace client
                 {
                     //update the game data
                     gameInformation.UpdateGameInformationFromMessage(responseData);
+                    Thread.Sleep(Constants.DELAY_FASTUPDATE_MS);
                     UpdateWindowFromGameInformation();
                     break;
                 }
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER))
+                {
+                    GameOver(responseData);
+                }
             }
+        }
+
+        private void GameOver(string data)
+        {
+            string[] splitData = data.Split('_');
+            string messageBoxText = "";
+            if (Int32.TryParse(splitData[1], out int id))
+            {
+                if(id == -1)
+                {
+                    messageBoxText = "Game over! It's a tie!";
+                }
+                else if(id == clientID)
+                {
+                    messageBoxText = "Congratulations! You have won the game!";
+                }
+                else
+                {
+                    messageBoxText = "You have lost! Better luck next time!";
+                }
+            }
+            this.gameStatus = Constants.GameStatus.GameOver;
+            string caption = "Game over!";
+            MessageBoxButton button = MessageBoxButton.OK;
+            MessageBoxImage icon = MessageBoxImage.Asterisk;
+            MessageBoxResult result;
+
+            result = MessageBox.Show(messageBoxText, caption, button, icon, MessageBoxResult.Yes);
         }
 
         //updates the game window based on the gameinformation property
@@ -485,13 +531,16 @@ namespace client
             baseBrushes[0] = new SolidColorBrush(Color.FromArgb(255, 125, 30, 30)); //dark red
             baseBrushes[1] = new SolidColorBrush(Color.FromArgb(255, 30, 30, 125)); //dark blue
 
-            int i = 0; 
+            int i = 0;
+            List<Constants.Region> doneRegions = new List<Constants.Region>();
+
             foreach (var list in this.gameInformation.Regions)
             {
                 foreach(Constants.Region reg in list)
                 {
                     App.Current.Dispatcher.Invoke((Action)delegate {
                         this.paths[(int)reg].Fill = brushes[i];
+                        Debug.Write(i + ": " + reg.ToString());
                     });
                 }
                 i++;
@@ -507,6 +556,15 @@ namespace client
                 this.paths[(int)base2].Fill = baseBrushes[1];
             });
 
+            Color border = Color.FromArgb(255, 255, 255, 0);
+            var brush = new SolidColorBrush(border);
+
+            foreach (Constants.Region region in gameInformation.HighValueRegions)
+            {
+                this.paths[(int)region].Stroke = brush;
+                this.paths[(int)region].StrokeThickness = 2;
+            }
+
 
             //color the bases
             /*
@@ -521,8 +579,6 @@ namespace client
             this.paths[(int)base2].Stroke = new SolidColorBrush(border);
             this.paths[(int)base2].StrokeThickness = 2;
             */
-
-
         }
 
         private void SendPickedRegion(Constants.Region? region)
@@ -575,15 +631,44 @@ namespace client
         private void HandleRegionClick(object sender, Constants.Region region)
         {
             if (!picking) return;
-
-            if (!gameInformation.Regions[0].Contains(region) && !gameInformation.Regions[1].Contains(region))
+            
+            switch(this.gameStatus)
             {
-                if(Constants.DoRegionsNeighbor(region, gameInformation.Regions[clientID - 1]) || !AreAnyMovesValid()) {
-                    picking = false;
-                    (sender as Path).Fill = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0));
-                    this.gameStatusTextBox.Text = "You have picked: " + region.ToString();
-                    SendPickedRegion(region);
-                }
+                case Constants.GameStatus.FirstRound:
+                    if (!gameInformation.Regions[0].Contains(region) && !gameInformation.Regions[1].Contains(region))
+                    {
+                        if (Constants.DoRegionsNeighbor(region, gameInformation.Regions[clientID - 1]) || !AreAnyMovesValid())
+                        {
+                            picking = false;
+                            (sender as Path).Fill = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0));
+                            this.gameStatusTextBox.Text = "You have picked: " + region.ToString();
+                            SendPickedRegion(region);
+                        }
+                    }
+                    break;
+                case Constants.GameStatus.SecondRound_FirstVersion:
+                    if (!gameInformation.Regions[clientID - 1].Contains(region))
+                    {
+                        if (Constants.DoRegionsNeighbor(region, gameInformation.Regions[clientID - 1]))
+                        {
+                            picking = false;
+                            (sender as Path).Fill = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0));
+                            this.gameStatusTextBox.Text = "You have picked: " + region.ToString();
+                            SendPickedRegion(region);
+                        }
+                    }
+                    break;
+                case Constants.GameStatus.SecondRound_SecondVersion:
+                    if (!gameInformation.Regions[clientID - 1].Contains(region))
+                    {
+                        picking = false;
+                        (sender as Path).Fill = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0));
+                        this.gameStatusTextBox.Text = "You have picked: " + region.ToString();
+                        SendPickedRegion(region);
+                    }
+                    break;
+                default:
+                    return;
             }
         }
 

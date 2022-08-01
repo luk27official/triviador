@@ -135,22 +135,30 @@ public class GameInformation
         this.Bases[1] = p2base;
 
         string[] p1regions = data[7].Split(',');
+
+        List<Constants.Region> p1regionsNew = new List<Constants.Region>();
+
         foreach(string s in p1regions)
         {
             if(Enum.TryParse(s, out Constants.Region reg))
             {
-                if (!this.Regions[0].Contains(reg)) this.Regions[0].Add(reg);
+                p1regionsNew.Add(reg);
             }
         }
+        this.Regions[0] = p1regionsNew;
 
         string[] p2regions = data[8].Split(',');
+
+        List<Constants.Region> p2regionsNew = new List<Constants.Region>();
+
         foreach (string s in p2regions)
         {
             if (Enum.TryParse(s, out Constants.Region reg))
             {
-                if (!this.Regions[1].Contains(reg)) this.Regions[1].Add(reg);
+                p2regionsNew.Add(reg);
             }
         }
+        this.Regions[1] = p2regionsNew;
 
         string[] hvregions = data[9].Split(',');
         foreach (string s in hvregions)
