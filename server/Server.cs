@@ -38,13 +38,14 @@ namespace server
 			IPAddress localAddr = IPAddress.Parse("127.0.0.1");
 
 			server = new TcpListener(localAddr, port);
-			acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
-			acceptedClientsIndex = 0; //holds the number of already connected people
-			gameInformation = new GameInformation();
 		}
 
 		public void Start()
 		{
+			acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
+			acceptedClientsIndex = 0; //holds the number of already connected people
+			gameInformation = new GameInformation();
+
 			try
 			{
 				questionsABCDWithAnswers = File.ReadAllLines("questionsABCD.txt");
@@ -241,21 +242,22 @@ namespace server
 
 		private void DecideWinnerBasedOnPoints()
         {
-			string message = Constants.PREFIX_GAMEOVER;
+			string message;
 
             if (gameInformation.Points[0] > gameInformation.Points[1])
             {
-				message += "1";
+				message = GameOverMessage(1);
             }
 			else if (gameInformation.Points[0] == gameInformation.Points[1])
             {
-				message += "-1"; //tie
+				message = GameOverMessage(-1); //tie
             }
 			else
             {
-				message += "2";
+				message = GameOverMessage(2);
             }
 			SendMessageToAllClients(message);
+			this.Stop();
         }
 
 		private Constants.Region PicksSecondRound(int clientID)
@@ -400,6 +402,7 @@ namespace server
 				if (this.gameInformation.BaseHealths[defenderID - 1] == 0)
 				{
 					SendMessageToAllClients(GameOverMessage(attackerID));
+					this.Stop();
 				}
 				SecondRound(attackerID, defenderID, true);
 			}

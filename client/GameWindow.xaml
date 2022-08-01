@@ -34,5 +34,6 @@
         <TextBox x:Name="p1HealthTextBox" HorizontalAlignment="Left" Margin="223,79,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" FontSize="24" IsEnabled="False" Text="hp"/>
         <Label x:Name="Player_2_hp" Content="Base health:" HorizontalAlignment="Left" Margin="648,79,0,0" VerticalAlignment="Top" FontSize="24" Foreground="Blue"/>
         <TextBox x:Name="p2HealthTextBox" HorizontalAlignment="Left" Margin="836,83,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" FontSize="24" IsEnabled="False" Text="hp"/>
+        <Label x:Name="currentRndLabel" Content="Current round: NaN" HorizontalAlignment="Left" Margin="736,460,0,0" VerticalAlignment="Top" FontSize="24"/>
     </Grid>
 </Window>

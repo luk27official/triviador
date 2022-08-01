@@ -31,6 +31,7 @@ namespace client
         private Window questionWindow;
         private bool inAnotherWindow;
         private Constants.GameStatus gameStatus;
+        private int attackRoundNumber;
 
         public GameWindow(NetworkStream stream)
         {
@@ -38,6 +39,7 @@ namespace client
             this.stream = stream;
             this.gameStatus = Constants.GameStatus.Loading;
             this.gameInformation = new GameInformation();
+            this.attackRoundNumber = 1;
             this.paths = new Path[] { 
                 CZJC,
                 CZJM,
@@ -86,14 +88,18 @@ namespace client
             this.gameStatus = Constants.GameStatus.SecondRound_FirstVersion;
             for (int i = 0; i < 6; i++)
             {
+                App.Current.Dispatcher.Invoke((Action)delegate { this.currentRndLabel.Content = "Current round: " + this.attackRoundNumber++; });
                 SecondRound();
             }
 
             this.gameStatus = Constants.GameStatus.SecondRound_SecondVersion;
             for (int i = 0; i < 2; i++)
             {
+                App.Current.Dispatcher.Invoke((Action)delegate { this.currentRndLabel.Content = "Current round: " + this.attackRoundNumber++; });
                 SecondRound();
             }
+
+            UpdateGameInformation(); //for checking game over
         }
 
         private void PickingSecondRound()
