@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 
 public static class Constants
@@ -130,6 +131,28 @@ public static class Constants
 	public const int MAX_PLAYERS = 2;
 	public const int REGION_COUNT = 14;
 
+	public const int FIRST_ROUND_QUESTIONS_COUNT = 4;
+	public const int SECOND_ROUND_FIRST_VERSION_QUESTIONS_COUNT = 6;
+	public const int SECOND_ROUND_SECOND_VERSION_QUESTIONS_COUNT = 2;
+
+	public const int DEFAULT_BUFFER_SIZE = 1024;
+
+	public const char GLOBAL_DELIMITER = '_';
+
+	public const string PLAYER_PICK_REGION = "Player {0} is supposed to pick a region!";
+	public const string SERVER_UPDATE = "Wait for the server to update information!";
+	public const string REGION_UNDER_ATTACK = "Region {0} under attack!";
+	public const string STARTING_SOON = "The round will start in a few seconds. Get ready to answer!";
+	public const string PLAYER_ID_LABEL = "My player ID is {0}";
+	public const string PLAYER_PICKED = "You have picked: {0}";
+
+	public const string ERROR_MENU = "An error occured. Try again later or check the connection information. Error message: {0}";
+
+	public const string GAMEOVER_TIE = "Game over! It's a tie!";
+	public const string GAMEOVER_WIN = "Congratulations! You have won the game!";
+	public const string GAMEOVER_LOSE = "You have lost! Better luck next time!";
+
+
 	public const string P1CONNECTED = "You have been connected, waiting for player 2.";
 	public const string P2CONNECTED = "Both players have connected, game starting soon.";
 
@@ -159,6 +182,7 @@ public static class Constants
 	public const int DELAY_SHOWANSWERS = 5000;
 	public const int DELAY_FIRSTROUND_PICKS = 7000;
 	public const int DELAY_WAITFORCLIENTUPDATE = 2000;
+	public const int DELAY_ENDGAME = 5000;
 
 	public const int DELAY_BETWEEN_ROUNDS = 4000;
 
@@ -167,6 +191,20 @@ public static class Constants
 
 	public const int LENGTH_FIRSTROUND_TOTAL = 50000;
 
-	public const int POINTS_FIRSTROUND = 200;
+	public const int POINTS_BASIC_REGION = 200;
+	public const int POINTS_HIGH_VALUE_REGION = 400;
+	public const int POINTS_DEFENDER_WIN = 100;
+
+	public const string CONFIG_FILENAME = "config.cfg";
+	public const string QUESTIONS_ABCD_FILENAME = "questionsABCD.txt";
+	public const string QUESTIONS_NUMS_FILENAME = "questionsNumber.txt";
+
+	public const string SERVER_LISTEN = "Server listening at {0}:{1}";
+	public const string SERVER_ERROR = "An error occured. Is your config file valid?";
+	public const string SERVER_USING_DEFAULT = "Using default settings - Server listening at {0}:{1}";
+
+	public const string DEFAULT_SERVER_HOSTNAME = "127.0.0.1";
+	public const int DEFAULT_SERVER_PORT = 13000;
+
 }
 

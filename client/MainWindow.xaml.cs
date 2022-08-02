@@ -85,9 +85,7 @@ namespace client
             }
             catch (Exception e2)
             {
-                this.informationTextBox.Text = 
-                    String.Format("An error occured. Try again later or check the connection information. Error message: {0}", e2.Message);
-                //err
+                this.informationTextBox.Text = String.Format(Constants.ERROR_MENU, e2.Message);
             }
         }
     }

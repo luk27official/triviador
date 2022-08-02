@@ -90,7 +90,7 @@ namespace client
 
             //now lets wait for the response with information
             Byte[] data;
-            data = new Byte[1024];
+            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
             String responseData = String.Empty;
             Int32 bytes;
             while (true) //wait for the first question
@@ -108,7 +108,7 @@ namespace client
         }
         private void ShowFinalAnswers(string data)
         {
-            string[] splitData = data.Split('_');
+            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
             //finalanswers_correctANS_P1ANS_P2ANS
             string correctAnswer = splitData[1];
             string p1Answer = splitData[2];
@@ -160,7 +160,7 @@ namespace client
 
         private void ParseQuestion(string data)
         {
-            string[] splitData = data.Split('_');
+            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
             this.questionLabel.Content = splitData[1];
 
             List<Button> availableButtons = new List<Button> { this.answerAbtn, this.answerBbtn, this.answerCbtn, this.answerDbtn };
@@ -185,7 +185,7 @@ namespace client
 
             (sender as Button).Background = brushes[clientID];
 
-            string message = Constants.PREFIX_ANSWER + clientID + "_" + answer; //no answer
+            string message = Constants.PREFIX_ANSWER + clientID + Constants.GLOBAL_DELIMITER + answer; //no answer
             byte[] msg = Encoding.ASCII.GetBytes(message);
             stream.Write(msg, 0, msg.Length);
             Console.WriteLine("Sent to the server: {0}", message);

@@ -86,7 +86,7 @@ namespace client
 
             //now lets wait for the response with information
             Byte[] data;
-            data = new Byte[1024];
+            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
             String responseData = String.Empty;
             Int32 bytes;
             while (true) //wait for the first question
@@ -105,7 +105,7 @@ namespace client
 
         private void ShowFinalAnswers(string data)
         {
-            string[] splitData = data.Split('_');
+            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
             App.Current.Dispatcher.Invoke((Action)delegate { this.p1label.Content = String.Format("P1 answer and time: {0}, {1}", splitData[1], splitData[3]); });
             App.Current.Dispatcher.Invoke((Action)delegate { this.p2label.Content = String.Format("P2 answer and time: {0}, {1}", splitData[2], splitData[4]); });
             App.Current.Dispatcher.Invoke((Action)delegate { this.playerWinlabel.Content = String.Format("The right answer was: {0} --> P{1} Wins!", splitData[5], Int32.Parse(splitData[6])); });
@@ -117,7 +117,7 @@ namespace client
 
         private void ParseQuestion(string data)
         {
-            string[] splitData = data.Split('_');
+            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
             this.questionLabel.Content = splitData[1];
         }
 
@@ -130,7 +130,7 @@ namespace client
             {
                 ans = 0; //if invalid value pass an 0
             }
-            string message = Constants.PREFIX_ANSWER + clientID + "_" + ans.ToString() + "_" + stopwatch.ElapsedMilliseconds;
+            string message = Constants.PREFIX_ANSWER + clientID + Constants.GLOBAL_DELIMITER + ans.ToString() + Constants.GLOBAL_DELIMITER + stopwatch.ElapsedMilliseconds;
             byte[] msg = Encoding.ASCII.GetBytes(message);
             stream.Write(msg, 0, msg.Length);
             Console.WriteLine("Sent to the server: {0}", message);

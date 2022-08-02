@@ -74,36 +74,36 @@ public class GameInformation
         //gameupdate_P1pts_P2pts_P1Health_P2Health_P1Base_P2Base_P1Regions_P2Regions_HighValueRegions
         //gameupdate_ 1500 _ 1700 _ 3 _ 2 _ 13 _ 9 _ 13,4,5, _ 9,6,7, _ 6,4,
         sb.Append(Points[0]);
-        sb.Append('_');
+        sb.Append(Constants.GLOBAL_DELIMITER);
 
         sb.Append(Points[1]);
-        sb.Append('_');
+        sb.Append(Constants.GLOBAL_DELIMITER);
 
         sb.Append(BaseHealths[0]);
-        sb.Append('_');
+        sb.Append(Constants.GLOBAL_DELIMITER);
 
         sb.Append(BaseHealths[1]);
-        sb.Append('_');
+        sb.Append(Constants.GLOBAL_DELIMITER);
 
         sb.Append(Bases[0]);
-        sb.Append('_');
+        sb.Append(Constants.GLOBAL_DELIMITER);
 
         sb.Append(Bases[1]);
-        sb.Append('_');
+        sb.Append(Constants.GLOBAL_DELIMITER);
 
         foreach(Constants.Region region in Regions[0])
         {
             sb.Append(region);
             sb.Append(',');
         }
-        sb.Append('_');
+        sb.Append(Constants.GLOBAL_DELIMITER);
 
         foreach (Constants.Region region in Regions[1])
         {
             sb.Append(region);
             sb.Append(',');
         }
-        sb.Append('_');
+        sb.Append(Constants.GLOBAL_DELIMITER);
 
         foreach (Constants.Region region in HighValueRegions)
         {
@@ -120,7 +120,7 @@ public class GameInformation
         //it could look something like this:
         //gameupdate_P1pts_P2pts_P1Health_P2Health_P1Base_P2Base_P1Regions_P2Regions_HighValueRegions
         //gameupdate_ 1500 _ 1700 _ 3 _ 2 _ 13 _ 9 _ 13,4,5, _ 9,6,7, _ 6,4,
-        string[] data = message.Split('_');
+        string[] data = message.Split(Constants.GLOBAL_DELIMITER);
 
         this.Points[0] = Int32.Parse(data[1]);
         this.Points[1] = Int32.Parse(data[2]);

@@ -41,38 +41,42 @@ namespace server
         {
 			try
             {
-				string configName = "config.cfg";
-
-				using (StreamReader reader = new StreamReader(configName))
+				using (StreamReader reader = new StreamReader(Constants.CONFIG_FILENAME))
 				{
 					reader.ReadLine(); //we do not need the first one
 					string line2 = reader.ReadLine(); //we do not need the first one
 													  //from the second one parse ip and port
-					string[] splitLine2 = line2.Split('_');
+					string[] splitLine2 = line2.Split(Constants.GLOBAL_DELIMITER);
 					IPAddress localAddr = IPAddress.Parse(splitLine2[0]);
 					Int32 port = Int32.Parse(splitLine2[1]);
 					server = new TcpListener(localAddr, port);
-                    Console.WriteLine(String.Format("Server listening at {0}:{1}", localAddr, port));
+                    Console.WriteLine(String.Format(Constants.SERVER_LISTEN, localAddr, port));
 				}
 			}
 			catch
             {
-				server = new TcpListener(IPAddress.Parse("127.0.0.1"), 13000); //default settings
-				Console.WriteLine("An error occured. Is your config file valid?");
-				Console.WriteLine(String.Format("Using default settings - Server listening at {0}:{1}", "127.0.0.1", "13000"));
+				server = new TcpListener(IPAddress.Parse(Constants.DEFAULT_SERVER_HOSTNAME), Constants.DEFAULT_SERVER_PORT); //default settings
+				Console.WriteLine(Constants.SERVER_ERROR);
+				Console.WriteLine(String.Format(Constants.SERVER_USING_DEFAULT, Constants.DEFAULT_SERVER_HOSTNAME, Constants.DEFAULT_SERVER_PORT));
 			}
+		}
+
+		public void ResetInformation()
+        {
+			acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
+			acceptedClientsIndex = 0; //holds the number of already connected people
+			gameInformation = new GameInformation();
+            Console.WriteLine("Information reset!");
 		}
 
 		public void Start()
 		{
-			acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
-			acceptedClientsIndex = 0; //holds the number of already connected people
-			gameInformation = new GameInformation();
+			ResetInformation();
 
 			try
 			{
-				questionsABCDWithAnswers = File.ReadAllLines("questionsABCD.txt");
-				questionsNumberWithAnswers = File.ReadAllLines("questionsNumber.txt");
+				questionsABCDWithAnswers = File.ReadAllLines(Constants.QUESTIONS_ABCD_FILENAME);
+				questionsNumberWithAnswers = File.ReadAllLines(Constants.QUESTIONS_NUMS_FILENAME);
 				server.Start();
 				Running = true;
 				while (Running)
@@ -82,12 +86,13 @@ namespace server
 					Task.Run(() => SaveClient(client));
 				}
 			}
-			catch (SocketException)
+			catch (SocketException e)
 			{
-				throw;
+                Console.WriteLine("Error: ", e);
 			}
-			catch (Exception) 
+			catch (Exception e) 
 			{
+				Console.WriteLine("Error: ", e);
 				throw;
 			}
 		}
@@ -184,15 +189,6 @@ namespace server
 			SendMessageToAllClients(gameInformation.EncodeInformationToString());
 		}
 
-		private void CreateTimedEvent(int countdownMs, System.Timers.ElapsedEventHandler e)
-        {
-			System.Timers.Timer timer = new System.Timers.Timer(countdownMs);
-
-			timer.Enabled = true;
-			timer.Elapsed += e;
-			timer.AutoReset = false;
-		}
-
 		private void GameStart()
         {
 			AssignBaseRegions();
@@ -200,30 +196,15 @@ namespace server
 			sw = new();
 			sw.Start();
 
-			//players now have 3 seconds to get ready for the first question of the 1st round
-			/*Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-			FirstRound();
-			Console.WriteLine("done r1");
-
-			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-			FirstRound();
-			Console.WriteLine("done r2");
-
-			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-			FirstRound();
-			Console.WriteLine("done r3");
-
-			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-			FirstRound();
-			Console.WriteLine("done r4");
-			*/
-			for(int i = 0; i < 4; i++)
+			
+			for(int i = 0; i < Constants.FIRST_ROUND_QUESTIONS_COUNT; i++)
             {
 				Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 				FirstRound();
 			}
 
-			for(int i = 0; i < 2; i++)
+			for(int i = 0; i < (Constants.SECOND_ROUND_FIRST_VERSION_QUESTIONS_COUNT + 
+				Constants.SECOND_ROUND_SECOND_VERSION_QUESTIONS_COUNT) / 4; i++)
             {
 				Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 				SecondRound(1, 2, false);
@@ -237,30 +218,9 @@ namespace server
 				Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 				SecondRound(1, 2, false);
 			}
+			
 			//noone has won till now -> decide the winner based on points
 			DecideWinnerBasedOnPoints();
-
-
-			//SecondRound(2);
-
-			/*
-			//first round
-			CreateTimedEvent(1, FirstRound);
-
-			//50s is the length of the first round
-			CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL, FirstRound);
-
-			//100s for the second one
-			CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL*2, FirstRound);
-
-			//150s for the third one
-			CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL*3, FirstRound);
-
-			//200s for the second round
-			CreateTimedEvent(Constants.LENGTH_FIRSTROUND_TOTAL * 4, SecondRound);
-			*/
-
-			//CreateTimedEvent(1, SecondRound);
 		}
 
 		private void DecideWinnerBasedOnPoints()
@@ -279,9 +239,15 @@ namespace server
             {
 				message = GameOverMessage(2);
             }
+			Thread.Sleep(Constants.DELAY_ENDGAME);
 			SendMessageToAllClients(message);
-			this.Stop();
-        }
+
+			var mydelegate = new Action(delegate ()
+			{
+				this.Reset();
+			});
+			mydelegate.Invoke();
+		}
 
 		private Constants.Region PicksSecondRound(int clientID)
         {
@@ -292,7 +258,7 @@ namespace server
 			Thread.Sleep(Constants.DELAY_FIRSTROUND_PICKS);
 			string[] receivedData = new string[Constants.MAX_PLAYERS];
 			Int32 bytes;
-			Byte[] data = new byte[1024];
+			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
 			int i = 0;
 
 			foreach (TcpClient client in acceptedClients)
@@ -343,7 +309,7 @@ namespace server
 			//we have sent the question. Now we have to wait to register all answers...
 			string responseData;
 			Int32 bytes;
-			Byte[] data = new byte[1024];
+			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
 
 			string[] answers = new string[Constants.MAX_PLAYERS];
 			int i = 0;
@@ -356,7 +322,7 @@ namespace server
 					bytes = stream.Read(data, 0, data.Length);
 					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
 					Console.WriteLine("Received: {0}", responseData);
-					string[] splitData = responseData.Split('_');
+					string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
 					answers[i] = splitData[2];
 					i++;
 				}
@@ -374,12 +340,12 @@ namespace server
 		private void DecideSecondRoundWinnerFirstQuestion(string[] answers, string question, int attackerID, int defenderID, Constants.Region attackedRegion)
         {
 			//finalanswers_correctANS_P1ANS_P2ANS
-			string[] splitQuestion = question.Split('_');
+			string[] splitQuestion = question.Split(Constants.GLOBAL_DELIMITER);
 			string correct = splitQuestion[2];
 			string p1Answer = answers[0];
 			string p2Answer = answers[1];
 
-			SendMessageToAllClients(Constants.PREFIX_FINALANSWERS + correct + '_' + p1Answer + '_' + p2Answer);
+			SendMessageToAllClients(Constants.PREFIX_FINALANSWERS + correct + Constants.GLOBAL_DELIMITER + p1Answer + Constants.GLOBAL_DELIMITER + p2Answer);
 
 			//we've just sent the information about the correct answers...
 			//we have to calculate the actual winner
@@ -424,8 +390,13 @@ namespace server
 				this.gameInformation.decreaseBaseHealth(defenderID);
 				if (this.gameInformation.BaseHealths[defenderID - 1] == 0)
 				{
+					Thread.Sleep(Constants.DELAY_ENDGAME);
 					SendMessageToAllClients(GameOverMessage(attackerID));
-					this.Stop();
+					var mydelegate = new Action(delegate ()
+					{
+						this.Reset();
+					});
+					mydelegate.Invoke();
 				}
 				SecondRound(attackerID, defenderID, true);
 			}
@@ -433,13 +404,13 @@ namespace server
 			{
 				if (this.gameInformation.HighValueRegions.Contains(attackedRegion))
 				{
-					this.gameInformation.addPoints(defenderID, -400);
+					this.gameInformation.addPoints(defenderID, -Constants.POINTS_HIGH_VALUE_REGION);
 				}
 				else
 				{
-					this.gameInformation.addPoints(defenderID, -200);
+					this.gameInformation.addPoints(defenderID, -Constants.POINTS_BASIC_REGION);
 				}
-				this.gameInformation.addPoints(attackerID, 400);
+				this.gameInformation.addPoints(attackerID, Constants.POINTS_HIGH_VALUE_REGION);
 				this.gameInformation.addRegion(attackerID, attackedRegion);
 				this.gameInformation.removeRegion(defenderID, attackedRegion);
 				this.gameInformation.addHighValueRegion(attackedRegion);
@@ -451,7 +422,7 @@ namespace server
         {
 			//defender answered ok
 			//just update points (+100) def
-			this.gameInformation.addPoints(defenderID, 100);
+			this.gameInformation.addPoints(defenderID, Constants.POINTS_DEFENDER_WIN);
 			SendMessageToAllClients(gameInformation.EncodeInformationToString());
 		}
 
@@ -470,7 +441,7 @@ namespace server
 			//we have sent the question. Now we have to wait to register all answers...
 			string responseData;
 			Int32 bytes;
-			Byte[] data = new byte[1024];
+			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
 
 			int[] answers = new int[Constants.MAX_PLAYERS];
 			int[] times = new int[Constants.MAX_PLAYERS];
@@ -485,7 +456,7 @@ namespace server
 					bytes = stream.Read(data, 0, data.Length);
 					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
 					Console.WriteLine("Received: {0}", responseData);
-					string[] splitData = responseData.Split('_');
+					string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
 					answers[i] = Int32.Parse(splitData[2]);
 					times[i] = Int32.Parse(splitData[3]);
 					i++;
@@ -506,8 +477,8 @@ namespace server
 		{
 			if(attackedRegion == null || defenderID == null || attackerID == null) return;
 			//send the players the info about their answers
-			string message = Constants.PREFIX_FINALANSWERS + answers[0] + "_" + answers[1] + "_" +
-				times[0] + "_" + times[1] + "_" + rightAnswer + "_" + winnerID;
+			string message = Constants.PREFIX_FINALANSWERS + answers[0] + Constants.GLOBAL_DELIMITER + answers[1] + Constants.GLOBAL_DELIMITER +
+				times[0] + Constants.GLOBAL_DELIMITER + times[1] + Constants.GLOBAL_DELIMITER + rightAnswer + Constants.GLOBAL_DELIMITER + winnerID;
 			SendMessageToAllClients(message);
 
 
@@ -528,7 +499,7 @@ namespace server
 			//Received: picked_1_CZST
 			foreach (string current in data)
 			{
-				string[] splitData = current.Split('_');
+				string[] splitData = current.Split(Constants.GLOBAL_DELIMITER);
 				if (splitData[2] != "-1")
 				{
 					int player = Int32.Parse(splitData[1]);
@@ -551,7 +522,7 @@ namespace server
 			Action<int[], int[], int, int, int, Constants.Region?, int?, int?> decideWin, 
 			Constants.Region? region, int? defenderID, int? attackerID)
         {
-			int rightAnswer = Int32.Parse(question.Split('_')[2]);
+			int rightAnswer = Int32.Parse(question.Split(Constants.GLOBAL_DELIMITER)[2]);
 
 			if (Math.Abs(answers[0] - rightAnswer) < Math.Abs(answers[1] - rightAnswer))
 			{
@@ -587,7 +558,7 @@ namespace server
 			//we have sent the question. Now we have to wait to register all answers...
 			string responseData;
 			Int32 bytes;
-			Byte[] data = new byte[1024];
+			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
 
 			int[] answers = new int[Constants.MAX_PLAYERS];
 			int[] times = new int[Constants.MAX_PLAYERS];
@@ -602,7 +573,7 @@ namespace server
 					bytes = stream.Read(data, 0, data.Length);
 					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
 					Console.WriteLine("Received: {0}", responseData);
-					string[] splitData = responseData.Split('_');
+					string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
 					answers[i] = Int32.Parse(splitData[2]);
 					times[i] = Int32.Parse(splitData[3]);
 					i++;
@@ -624,8 +595,8 @@ namespace server
         {
 			//we dont need the region, x and y here
 			//send the players the info about their answers
-			string message = Constants.PREFIX_FINALANSWERS + answers[0] + "_" + answers[1] + "_" + 
-				times[0] + "_" + times[1] + "_" + rightAnswer + "_" + winnerID;
+			string message = Constants.PREFIX_FINALANSWERS + answers[0] + Constants.GLOBAL_DELIMITER + answers[1] + Constants.GLOBAL_DELIMITER + 
+				times[0] + Constants.GLOBAL_DELIMITER + times[1] + Constants.GLOBAL_DELIMITER + rightAnswer + Constants.GLOBAL_DELIMITER + winnerID;
 			SendMessageToAllClients(message);
 
 			Thread.Sleep(Constants.DELAY_SHOWANSWERS);
@@ -647,7 +618,7 @@ namespace server
 			Thread.Sleep(Constants.DELAY_FIRSTROUND_PICKS);
 			string[] receivedData = new string[Constants.MAX_PLAYERS];
 			Int32 bytes;
-			Byte[] data = new byte[1024];
+			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
 			int i = 0;
 
 			foreach (TcpClient client in acceptedClients)
@@ -675,13 +646,13 @@ namespace server
 			//Received: picked_1_CZST
 			foreach(string current in data)
             {
-				string[] splitData = current.Split('_');
+				string[] splitData = current.Split(Constants.GLOBAL_DELIMITER);
 				if (splitData[2] != "-1")
 				{
 					int player = Int32.Parse(splitData[1]);
 					if (Enum.TryParse(splitData[2], out Constants.Region reg))
 					{
-						this.gameInformation.addPoints(player, Constants.POINTS_FIRSTROUND);
+						this.gameInformation.addPoints(player, Constants.POINTS_BASIC_REGION);
 						this.gameInformation.addRegion(player, reg);
 						SendMessageToAllClients(gameInformation.EncodeInformationToString());
 						break;
@@ -731,10 +702,21 @@ namespace server
 			return Constants.PREFIX_QUESTIONNUMBER + questionsNumberWithAnswers[r];
 		}
 
-		public void Stop()
+		public void Reset()
 		{
-			server.Stop();
-			Running = false;
+			foreach (TcpClient client in acceptedClients)
+			{
+				try
+				{
+					client.Close();
+				}
+				catch (SocketException e)
+				{
+					//one of the players disconnected... TODO: resolve what to do
+					continue;
+				}
+			}
+			ResetInformation();
 		}
 	}
 }
