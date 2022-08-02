@@ -128,6 +128,13 @@ public static class Constants
 		GameOver
     }
 
+	public class DisconnectException : Exception
+    {
+		public DisconnectException()
+		{
+		}
+	}
+
 	public const int MAX_PLAYERS = 2;
 	public const int REGION_COUNT = 14;
 
@@ -147,11 +154,12 @@ public static class Constants
 	public const string PLAYER_PICKED = "You have picked: {0}";
 
 	public const string ERROR_MENU = "An error occured. Try again later or check the connection information. Error message: {0}";
+	public const string SERVER_RESET = "Server data reset!";
 
 	public const string GAMEOVER_TIE = "Game over! It's a tie!";
 	public const string GAMEOVER_WIN = "Congratulations! You have won the game!";
 	public const string GAMEOVER_LOSE = "You have lost! Better luck next time!";
-
+	public const string GAMEOVER_DISCONNECT = "Your opponnent disconnected! We are sorry.";
 
 	public const string P1CONNECTED = "You have been connected, waiting for player 2.";
 	public const string P2CONNECTED = "Both players have connected, game starting soon.";
@@ -173,6 +181,7 @@ public static class Constants
 	public const string PREFIX_PICKED = "picked_";
 
 	public const string PREFIX_ATTACK = "attack_";
+	public const string PREFIX_DISCONNECTED = "disconnected_";
 
 	public const string PREFIX_GAMEOVER = "gameover_";
 
@@ -183,6 +192,7 @@ public static class Constants
 	public const int DELAY_FIRSTROUND_PICKS = 7000;
 	public const int DELAY_WAITFORCLIENTUPDATE = 2000;
 	public const int DELAY_ENDGAME = 5000;
+	public const int DELAY_RESTART_SERVER = 5000;
 
 	public const int DELAY_BETWEEN_ROUNDS = 4000;
 

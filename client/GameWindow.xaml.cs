@@ -127,7 +127,11 @@ namespace client
                 Debug.WriteLine("Received 2ndRnd: " + responseData);
                 //App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
 
-                if (responseData.StartsWith(Constants.PREFIX_PICKREGION))
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_PICKREGION))
                 {
                     string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
                     App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.PLAYER_PICK_REGION, splitData[1]); });
@@ -178,8 +182,11 @@ namespace client
                 bytes = stream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 //App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
-
-                if (responseData.StartsWith(Constants.PREFIX_ATTACK))
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_ATTACK))
                 {
                     string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
                     Enum.TryParse(splitData[1], out Constants.Region reg);
@@ -187,6 +194,7 @@ namespace client
                     App.Current.Dispatcher.Invoke((Action)delegate { this.paths[(int)reg].Fill = BrushesAndColors.ATTACKED_REGION_BRUSH; });
                     break;
                 }
+
             }
         }
 
@@ -215,7 +223,11 @@ namespace client
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Debug.WriteLine("Received: " + responseData);
                 //App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
-                if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
                 {
                     this.inAnotherWindow = true;
 
@@ -257,8 +269,12 @@ namespace client
                 bytes = stream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Debug.WriteLine("Received: " + responseData);
-               // App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
-                if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
+                // App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
                 {
                     //this means that some base was damaged...
                     this.inAnotherWindow = true;
@@ -316,6 +332,19 @@ namespace client
             });
         }
 
+        private void HandleEnemyDisconnect()
+        {
+            MessageBoxButton button = MessageBoxButton.OK;
+            MessageBoxImage icon = MessageBoxImage.Exclamation;
+            MessageBoxResult result;
+
+            result = MessageBox.Show(Constants.GAMEOVER_DISCONNECT, "Game over!", button, icon, MessageBoxResult.Yes);
+            App.Current.Dispatcher.Invoke((Action)delegate {
+                System.Windows.Application.Current.Shutdown();
+                Environment.Exit(0);
+            });
+        }
+
         private void QuestionWindowABCD_Round2_Closed(object? sender, EventArgs e)
         {
             //we return from the question -> picking regions three times!
@@ -337,10 +366,14 @@ namespace client
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Debug.WriteLine("Received: " + responseData);
                 //App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
-                if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //handle question numeric
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //handle question numeric
                 {
                     this.inAnotherWindow = true;
-                    
+
                     App.Current.Dispatcher.Invoke((Action)delegate {
                         this.questionWindow = new QuestionNumericWindow(responseData, stream, clientID);
                     });
@@ -383,8 +416,11 @@ namespace client
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Debug.WriteLine("Received firstRnd: " + responseData);
                 //App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = responseData; });
-                
-                if (responseData.StartsWith(Constants.PREFIX_PICKREGION))
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_PICKREGION))
                 {
                     string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
                     App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.PLAYER_PICK_REGION, splitData[1]); });
@@ -448,7 +484,11 @@ namespace client
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Debug.WriteLine("Received: " + responseData);
                 /*here we check whether we receive the right message*/
-                if(responseData.StartsWith(Constants.PREFIX_ASSIGN))
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_ASSIGN))
                 {
                     char lastChar = responseData[responseData.Length - 1];
                     this.clientID = Int32.Parse(lastChar.ToString());
@@ -474,7 +514,11 @@ namespace client
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Debug.WriteLine("Received: " + responseData);
                 /*here we check whether we receive the right message*/
-                if (responseData.StartsWith(Constants.PREFIX_GAMEUPDATE))
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEUPDATE))
                 {
                     //update the game data
                     gameInformation.UpdateGameInformationFromMessage(responseData);
@@ -514,8 +558,11 @@ namespace client
             MessageBoxResult result;
 
             result = MessageBox.Show(messageBoxText, "Game over!", button, icon, MessageBoxResult.Yes);
-            App.Current.Dispatcher.Invoke((Action)delegate {
+            /*App.Current.Dispatcher.Invoke((Action)delegate {
                 this.Close(); //end the app
+            });*/
+            App.Current.Dispatcher.Invoke((Action)delegate {
+                System.Windows.Application.Current.Shutdown();
             });
         }
 

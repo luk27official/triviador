@@ -5,10 +5,27 @@ namespace server
 {
     static class Program
     {
+        static void CreateServer()
+        {
+            Server s;
+            s = new Server();
+            try
+            {
+                s.Start();
+            }
+            catch (Exception e)
+            {
+                //a player disconnected... it is better to create a new server.
+            }
+            finally
+            {
+                s.Stop();
+                CreateServer();
+            }
+        }
         static void Main(string[] args)
         {
-            Server s = new Server();
-            s.Start();
+            CreateServer();
         }
     }
 }

@@ -19,6 +19,7 @@ namespace server
 		string[] questionsABCDWithAnswers;
 		string[] questionsNumberWithAnswers;
 		Stopwatch sw;
+		bool playerDisconnected;
 
 		public bool Running
 		{
@@ -43,7 +44,7 @@ namespace server
             {
 				using (StreamReader reader = new StreamReader(Constants.CONFIG_FILENAME))
 				{
-					reader.ReadLine(); //we do not need the first one
+					reader.ReadLine(); //we do not need the first one, its there just for reference
 					string line2 = reader.ReadLine(); //we do not need the first one
 													  //from the second one parse ip and port
 					string[] splitLine2 = line2.Split(Constants.GLOBAL_DELIMITER);
@@ -66,7 +67,8 @@ namespace server
 			acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
 			acceptedClientsIndex = 0; //holds the number of already connected people
 			gameInformation = new GameInformation();
-            Console.WriteLine("Information reset!");
+            Console.WriteLine(Constants.SERVER_RESET);
+			playerDisconnected = false;
 		}
 
 		public void Start()
@@ -82,19 +84,25 @@ namespace server
 				while (Running)
 				{
 					var client = server.AcceptTcpClient();
-
-					Task.Run(() => SaveClient(client));
+					var task = Task.Run(() => SaveClient(client));
+					try
+					{
+						task.Wait();
+					}
+					catch (Exception e)
+					{
+						throw new Constants.DisconnectException();
+                    }
 				}
 			}
-			catch (SocketException e)
-			{
-                Console.WriteLine("Error: ", e);
+			catch (Constants.DisconnectException e)
+            {
+				throw new Constants.DisconnectException();
 			}
-			catch (Exception e) 
-			{
-				Console.WriteLine("Error: ", e);
-				throw;
-			}
+			catch (Exception e)
+            {
+                Console.WriteLine("Error: " + e.Message);
+            }
 		}
 
 		private void SaveClient(TcpClient currentClient)
@@ -128,9 +136,8 @@ namespace server
 
 			//otherwise we have already one player connected, so lets
 			//inform both users they have been connected
-			if(acceptedClientsIndex == Constants.MAX_PLAYERS) 
+			if (acceptedClientsIndex == Constants.MAX_PLAYERS)
 				InformPlayersAboutConnection();
-			
 		}
 
 		private void InformPlayersAboutConnection() {
@@ -162,9 +169,10 @@ namespace server
 					Console.WriteLine("Sent to {0}: {1}", i + 1, message);
 					i++;
 				}
-				catch (SocketException e)
+				catch (Exception e)
 				{
-					//one of the players disconnected... TODO: resolve what to do
+					//one of the players disconnected...
+					this.playerDisconnected = true;
 					continue;
 				}
 			}
@@ -186,8 +194,18 @@ namespace server
 			gameInformation.setBase(1, player1Base);
 			gameInformation.setBase(2, player2Base);
 
-			SendMessageToAllClients(gameInformation.EncodeInformationToString());
+			SendGameInfoAndCheckDisconnect();
 		}
+
+		private void SendGameInfoAndCheckDisconnect()
+        {
+			//basically just check if someone disconnected... if yes, inform the client
+			if (this.playerDisconnected)
+			{
+				SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + "X");
+			}
+			else SendMessageToAllClients(gameInformation.EncodeInformationToString());
+        }
 
 		private void GameStart()
         {
@@ -271,9 +289,10 @@ namespace server
 					Console.WriteLine("Received: {0}", receivedData[i]);
 					i++;
 				}
-				catch (SocketException e)
+				catch (Exception e)
 				{
-					//one of the players disconnected... TODO: resolve what to do
+					//one of the players disconnected...
+					this.playerDisconnected = true;
 					continue;
 				}
 			}
@@ -326,9 +345,10 @@ namespace server
 					answers[i] = splitData[2];
 					i++;
 				}
-				catch (SocketException e)
+				catch (Exception e)
 				{
-					//one of the players disconnected... TODO: resolve what to do
+					//one of the players disconnected...
+					this.playerDisconnected = true;
 					continue;
 				}
 			}
@@ -392,7 +412,7 @@ namespace server
 				{
 					Thread.Sleep(Constants.DELAY_ENDGAME);
 					SendMessageToAllClients(GameOverMessage(attackerID));
-					var mydelegate = new Action(delegate ()
+                    var mydelegate = new Action(delegate ()
 					{
 						this.Reset();
 					});
@@ -414,7 +434,7 @@ namespace server
 				this.gameInformation.addRegion(attackerID, attackedRegion);
 				this.gameInformation.removeRegion(defenderID, attackedRegion);
 				this.gameInformation.addHighValueRegion(attackedRegion);
-				SendMessageToAllClients(gameInformation.EncodeInformationToString());
+				SendGameInfoAndCheckDisconnect();
 			}
 		}
 
@@ -423,12 +443,12 @@ namespace server
 			//defender answered ok
 			//just update points (+100) def
 			this.gameInformation.addPoints(defenderID, Constants.POINTS_DEFENDER_WIN);
-			SendMessageToAllClients(gameInformation.EncodeInformationToString());
+			SendGameInfoAndCheckDisconnect();
 		}
 
 		private void SecondRoundNoOneAnsweredCorrectly()
         {
-			SendMessageToAllClients(gameInformation.EncodeInformationToString());
+			SendGameInfoAndCheckDisconnect();
 		}
 
 		private void SecondRoundAnotherQuestion(int attackerID, int defenderID, Constants.Region attackedRegion)
@@ -437,7 +457,8 @@ namespace server
 			string question = PickRandomNumberQuestion();
 			SendMessageToAllClients(question);
 
-			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
+
+            Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 			//we have sent the question. Now we have to wait to register all answers...
 			string responseData;
 			Int32 bytes;
@@ -461,9 +482,10 @@ namespace server
 					times[i] = Int32.Parse(splitData[3]);
 					i++;
 				}
-				catch (SocketException e)
+				catch (Exception e)
 				{
-					//one of the players disconnected... TODO: resolve what to do
+					//one of the players disconnected...
+					this.playerDisconnected = true;
 					continue;
 				}
 			}
@@ -578,9 +600,10 @@ namespace server
 					times[i] = Int32.Parse(splitData[3]);
 					i++;
 				}
-				catch (SocketException e)
+				catch (Exception e)
 				{
-					//one of the players disconnected... TODO: resolve what to do
+					//one of the players disconnected...
+					this.playerDisconnected = true;
 					continue;
 				}
 			}
@@ -599,7 +622,7 @@ namespace server
 				times[0] + Constants.GLOBAL_DELIMITER + times[1] + Constants.GLOBAL_DELIMITER + rightAnswer + Constants.GLOBAL_DELIMITER + winnerID;
 			SendMessageToAllClients(message);
 
-			Thread.Sleep(Constants.DELAY_SHOWANSWERS);
+            Thread.Sleep(Constants.DELAY_SHOWANSWERS);
 
 			SendFirstRoundPickAnnouncement(winnerID);
 			SendFirstRoundPickAnnouncement(winnerID);
@@ -631,9 +654,10 @@ namespace server
 					Console.WriteLine("Received: {0}", receivedData[i]);
 					i++;
 				}
-				catch (SocketException e)
+				catch (Exception e)
 				{
-					//one of the players disconnected... TODO: resolve what to do
+					//one of the players disconnected...
+					this.playerDisconnected = true;
 					continue;
 				}
 			}
@@ -654,7 +678,7 @@ namespace server
 					{
 						this.gameInformation.addPoints(player, Constants.POINTS_BASIC_REGION);
 						this.gameInformation.addRegion(player, reg);
-						SendMessageToAllClients(gameInformation.EncodeInformationToString());
+						SendGameInfoAndCheckDisconnect();
 						break;
 					}
 				}
@@ -670,17 +694,32 @@ namespace server
 			{
 				try
 				{
-					NetworkStream stream = client.GetStream();
-					stream.Write(msg, 0, msg.Length);
-					Console.WriteLine("Sent to {0}: {1}", i + 1, message);
-					i++;
+					if (client != null)
+					{
+						NetworkStream stream = client.GetStream();
+						stream.Write(msg, 0, msg.Length);
+						Console.WriteLine("Sent to {0}: {1}", i + 1, message);
+						i++;
+					}
+					else throw new Exception();
 				}
-				catch (SocketException e)
+				catch (Exception e)
 				{
-					//one of the players disconnected... TODO: resolve what to do
+					//one of the players disconnected
+					this.playerDisconnected = true;
+					if (!message.StartsWith(Constants.PREFIX_DISCONNECTED))
+                    {
+						SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + "X");
+						return;
+					}
 					continue;
 				}
 			}
+
+			if(message.StartsWith(Constants.PREFIX_DISCONNECTED))
+            {
+				throw new Constants.DisconnectException();
+            }
 		}
 
 		private string GameOverMessage(int winnerID)
@@ -708,15 +747,32 @@ namespace server
 			{
 				try
 				{
-					client.Close();
+					if(client != null) client.Close();
 				}
-				catch (SocketException e)
+				catch (Exception e)
 				{
-					//one of the players disconnected... TODO: resolve what to do
+					//this does not really matter...
 					continue;
 				}
 			}
 			ResetInformation();
+		}
+
+		public void Stop()
+        {
+			foreach (TcpClient client in acceptedClients)
+			{
+				try
+				{
+					if (client != null) client.Close();
+				}
+				catch (Exception e)
+				{
+					//this does not really matter...
+					continue;
+				}
+			}
+			server.Stop();
 		}
 	}
 }

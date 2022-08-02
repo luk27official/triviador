@@ -98,7 +98,11 @@ namespace client
                 bytes = stream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Console.WriteLine("Received: {0}", responseData);
-                if (responseData.StartsWith(Constants.PREFIX_FINALANSWERS)) //handle answers
+                if (responseData.StartsWith(Constants.PREFIX_DISCONNECTED))
+                {
+                    HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_FINALANSWERS)) //handle answers
                 {
                     ShowFinalAnswers(responseData);
                     break;
@@ -106,6 +110,20 @@ namespace client
             }
 
         }
+
+        private void HandleEnemyDisconnect()
+        {
+            MessageBoxButton button = MessageBoxButton.OK;
+            MessageBoxImage icon = MessageBoxImage.Exclamation;
+            MessageBoxResult result;
+
+            result = MessageBox.Show(Constants.GAMEOVER_DISCONNECT, "Game over!", button, icon, MessageBoxResult.Yes);
+            App.Current.Dispatcher.Invoke((Action)delegate {
+                System.Windows.Application.Current.Shutdown();
+                Environment.Exit(0);
+            });
+        }
+
         private void ShowFinalAnswers(string data)
         {
             string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);

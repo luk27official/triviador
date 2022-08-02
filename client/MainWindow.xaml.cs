@@ -20,7 +20,7 @@ namespace client
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
-    /// </summary>
+    /// </summary>+
     public partial class MainWindow : Window
     {
         private bool _isConnected = false;
@@ -28,6 +28,19 @@ namespace client
         public MainWindow()
         {
             InitializeComponent();
+        }
+
+        private void HandleEnemyDisconnect()
+        {
+            MessageBoxButton button = MessageBoxButton.OK;
+            MessageBoxImage icon = MessageBoxImage.Exclamation;
+            MessageBoxResult result;
+
+            result = MessageBox.Show(Constants.GAMEOVER_DISCONNECT, "Game over!", button, icon, MessageBoxResult.Yes);
+            App.Current.Dispatcher.Invoke((Action)delegate {
+                System.Windows.Application.Current.Shutdown();
+                Environment.Exit(0);
+            });
         }
 
         private async void connectButton_Click(object sender, RoutedEventArgs e)
@@ -74,6 +87,10 @@ namespace client
                         gw.Show();
                         this.Close();
                         break;
+                    }
+                    else if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                    {
+                        HandleEnemyDisconnect();
                     }
                 }
 
