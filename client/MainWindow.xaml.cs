@@ -35,15 +35,20 @@ namespace client
             if (_isConnected) return; //prevents from connecting multiple times
             try
             {
-                //string hostName = this.ipTextBox.Text;
-                //Int32 port = Int32.Parse(this.portTextBox.Text);
-                int port = 13000;
-                string hostName = "127.0.0.1";
+                string hostName = this.ipTextBox.Text;
+                if (!Int32.TryParse(this.portTextBox.Text, out int port))
+                {
+                    this.informationTextBox.Text = "Invalid port entered!";
+                    return;
+                }
+                //int port = 13000;
+                //string hostName = "127.0.0.1";
 
                 // Create a TcpClient.
                 // Note, for this client to work you need to have a TcpServer
                 // connected to the same address as specified by the server, port
                 // combination.
+
                 TcpClient client = new TcpClient(hostName, port);
                 _isConnected = true;
 

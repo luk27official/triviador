@@ -16,9 +16,9 @@
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Label Content="Triviador - Connect to Game" Margin="264,51,264,0" VerticalAlignment="Top" FontSize="36" Grid.ColumnSpan="2" HorizontalContentAlignment="Center"/>
-        <TextBox x:Name="ipTextBox" Margin="0,167,10,0" TextWrapping="Wrap" Text="&#xD;&#xA;" VerticalAlignment="Top" FontSize="22" Height="35" HorizontalAlignment="Right" Width="305"/>
+        <TextBox x:Name="ipTextBox" Margin="0,167,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" FontSize="22" Height="35" HorizontalAlignment="Right" Width="305"/>
         <Label Content="Enter IP:" Margin="0,163,328,0" VerticalAlignment="Top" FontSize="22" HorizontalAlignment="Right" Width="89"/>
-        <TextBox x:Name="portTextBox" HorizontalAlignment="Right" Margin="0,227,10,0" TextWrapping="Wrap" Text="&#xA;" VerticalAlignment="Top" Width="305" FontSize="22" Height="35"/>
+        <TextBox x:Name="portTextBox" HorizontalAlignment="Right" Margin="0,227,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="305" FontSize="22" Height="35"/>
         <Label Content="Port:" HorizontalAlignment="Right" Margin="0,223,328,0" VerticalAlignment="Top" FontSize="22"/>
         <Button x:Name="connectButton" Content="Connect" HorizontalAlignment="Right" Margin="0,292,10,0" VerticalAlignment="Top" Height="48" Width="305" FontSize="24" Click="connectButton_Click"/>
         <TextBox x:Name="informationTextBox" Margin="10,167,0,0" TextWrapping="Wrap" Text="Information about connection will appear here." VerticalAlignment="Top" Height="173" FontSize="24" IsEnabled="False" Grid.Column="1" HorizontalAlignment="Left" Width="451"/>
