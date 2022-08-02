@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:client"
         mc:Ignorable="d"
-        Title="QuestionABCDWindow" Height="471" Width="500">
+        ResizeMode="NoResize"
+        Title="QuestionABCDWindow" Height="500" Width="500">
     <Grid>
         <Label x:Name="questionLabel" Content="The question will appear here." HorizontalAlignment="Center" HorizontalContentAlignment="Center" Margin="0,10,0,0" VerticalAlignment="Top" FontSize="24" Height="129" Width="480" FontWeight="Bold"/>
         <Button x:Name="answerAbtn" Content="Answer A" HorizontalAlignment="Left" Margin="25,144,0,0" VerticalAlignment="Top" FontSize="24" Height="50" Width="200" Click="answerAbtn_Click"/>

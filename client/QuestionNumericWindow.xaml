@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:client"
         mc:Ignorable="d"
-        Title="QuestionNumericWindow" Height="495" Width="500">
+        ResizeMode="NoResize"
+        Title="QuestionNumericWindow" Height="500" Width="500">
     <Grid>
         <Label x:Name="questionLabel" Content="The question will appear here." HorizontalAlignment="Center" HorizontalContentAlignment="Center" Margin="0,10,0,0" VerticalAlignment="Top" FontSize="24" Height="129" Width="480" FontWeight="Bold"/>
         <Label x:Name="timerLabel" Content="Time left: ??" HorizontalAlignment="Center" Margin="0,406,0,0" VerticalAlignment="Top" FontSize="24"/>

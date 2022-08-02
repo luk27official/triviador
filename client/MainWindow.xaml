@@ -5,7 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:client"
         mc:Ignorable="d"
-        Title="Triviador: Main Window" Height="600" Width="1000">
+        Title="Triviador: Main Window" Height="600" Width="1000"
+        MinHeight="600" MinWidth="1000">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition/>
