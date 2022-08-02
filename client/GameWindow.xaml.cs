@@ -19,7 +19,7 @@ using System.Windows.Shapes;
 namespace client
 {
     /// <summary>
-    /// Interakční logika pro GameWindow.xaml
+    /// Interaction logic for GameWindow.xaml
     /// </summary>
     public partial class GameWindow : Window
     {
