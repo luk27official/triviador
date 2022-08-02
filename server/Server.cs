@@ -34,10 +34,33 @@ namespace server
 
 		public Server()
 		{
-			Int32 port = 13000;
-			IPAddress localAddr = IPAddress.Parse("127.0.0.1");
+			SetupServer();
+		}
 
-			server = new TcpListener(localAddr, port);
+		public void SetupServer()
+        {
+			try
+            {
+				string configName = "config.cfg";
+
+				using (StreamReader reader = new StreamReader(configName))
+				{
+					reader.ReadLine(); //we do not need the first one
+					string line2 = reader.ReadLine(); //we do not need the first one
+													  //from the second one parse ip and port
+					string[] splitLine2 = line2.Split('_');
+					IPAddress localAddr = IPAddress.Parse(splitLine2[0]);
+					Int32 port = Int32.Parse(splitLine2[1]);
+					server = new TcpListener(localAddr, port);
+                    Console.WriteLine(String.Format("Server listening at {0}:{1}", localAddr, port));
+				}
+			}
+			catch
+            {
+				server = new TcpListener(IPAddress.Parse("127.0.0.1"), 13000); //default settings
+				Console.WriteLine("An error occured. Is your config file valid?");
+				Console.WriteLine(String.Format("Using default settings - Server listening at {0}:{1}", "127.0.0.1", "13000"));
+			}
 		}
 
 		public void Start()

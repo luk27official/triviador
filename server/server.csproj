@@ -12,6 +12,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="config.cfg">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="questionsABCD.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
