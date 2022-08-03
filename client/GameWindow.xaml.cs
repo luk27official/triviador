@@ -521,12 +521,6 @@ namespace client
                     GameOver(responseData);
                 }
             }
-
-            //here we have to wait in the thread because there is an question open.
-            SpinWait.SpinUntil(() => this._anotherWindowInFocus == false);
-            App.Current.Dispatcher.Invoke((Action)delegate {
-                UpdateGameInformation();
-            });
         }
 
         private void GameOver(string data)
