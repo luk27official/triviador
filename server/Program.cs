@@ -23,6 +23,7 @@ namespace server
                 CreateServer();
             }
         }
+
         static void Main(string[] args)
         {
             CreateServer();

@@ -12,26 +12,13 @@ namespace server
 	internal class Server
 	{
 		bool _running;
-		TcpListener server;
-		TcpClient[] acceptedClients;
-		int acceptedClientsIndex;
-		GameInformation gameInformation;
-		string[] questionsABCDWithAnswers;
-		string[] questionsNumberWithAnswers;
-		Stopwatch sw;
-		bool playerDisconnected;
-
-		public bool Running
-		{
-			get
-			{
-				return _running;
-			}
-			set
-			{
-				_running = value;
-			}
-		}
+		TcpListener _server;
+		TcpClient[] _acceptedClients;
+		int _acceptedClientsIndex; //holds the number of already connected people
+		GameInformation _gameInformation;
+		string[] _questionsABCDWithAnswers;
+		string[] _questionsNumericWithAnswers;
+		bool _playerDisconnected;
 
 		public Server()
 		{
@@ -50,13 +37,13 @@ namespace server
 					string[] splitLine2 = line2.Split(Constants.GLOBAL_DELIMITER);
 					IPAddress localAddr = IPAddress.Parse(splitLine2[0]);
 					Int32 port = Int32.Parse(splitLine2[1]);
-					server = new TcpListener(localAddr, port);
+					_server = new TcpListener(localAddr, port);
                     Console.WriteLine(String.Format(Constants.SERVER_LISTEN, localAddr, port));
 				}
 			}
 			catch
             {
-				server = new TcpListener(IPAddress.Parse(Constants.DEFAULT_SERVER_HOSTNAME), Constants.DEFAULT_SERVER_PORT); //default settings
+				_server = new TcpListener(IPAddress.Parse(Constants.DEFAULT_SERVER_HOSTNAME), Constants.DEFAULT_SERVER_PORT); //default settings
 				Console.WriteLine(Constants.SERVER_ERROR);
 				Console.WriteLine(String.Format(Constants.SERVER_USING_DEFAULT, Constants.DEFAULT_SERVER_HOSTNAME, Constants.DEFAULT_SERVER_PORT));
 			}
@@ -64,11 +51,11 @@ namespace server
 
 		public void ResetInformation()
         {
-			acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
-			acceptedClientsIndex = 0; //holds the number of already connected people
-			gameInformation = new GameInformation();
+			_acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
+			_acceptedClientsIndex = 0;
+			_gameInformation = new GameInformation();
             Console.WriteLine(Constants.SERVER_RESET);
-			playerDisconnected = false;
+			_playerDisconnected = false;
 		}
 
 		public void Start()
@@ -77,13 +64,13 @@ namespace server
 
 			try
 			{
-				questionsABCDWithAnswers = File.ReadAllLines(Constants.QUESTIONS_ABCD_FILENAME);
-				questionsNumberWithAnswers = File.ReadAllLines(Constants.QUESTIONS_NUMS_FILENAME);
-				server.Start();
-				Running = true;
-				while (Running)
+				_questionsABCDWithAnswers = File.ReadAllLines(Constants.QUESTIONS_ABCD_FILENAME);
+				_questionsNumericWithAnswers = File.ReadAllLines(Constants.QUESTIONS_NUMS_FILENAME);
+				_server.Start();
+				_running = true;
+				while (_running)
 				{
-					var client = server.AcceptTcpClient();
+					var client = _server.AcceptTcpClient();
 					var task = Task.Run(() => SaveClient(client));
 					try
 					{
@@ -107,36 +94,34 @@ namespace server
 
 		private void SaveClient(TcpClient currentClient)
 		{
-			if (acceptedClientsIndex > Constants.MAX_PLAYERS - 1) //a third user tries to connect, do not do anything
+			if (_acceptedClientsIndex > Constants.MAX_PLAYERS - 1) //a third user tries to connect, do not do anything
 			{
 				return;
 			}
 
-			lock (acceptedClients) //prevent from more clients accessing the array at once, register them and send the information about connection
+			lock (_acceptedClients) //prevent from more clients accessing the array at once, register them and send the information about connection
 			{
-				Console.WriteLine("Accepted client " + (acceptedClientsIndex + 1).ToString());
-				acceptedClients[acceptedClientsIndex] = currentClient;
+				Console.WriteLine(Constants.SERVER_ACCEPT, (_acceptedClientsIndex + 1).ToString());
+				_acceptedClients[_acceptedClientsIndex] = currentClient;
 
-				if (acceptedClientsIndex == 0) //inform the first user about their connection
+				if (_acceptedClientsIndex == 0) //inform the first user about their connection
 				{
 					NetworkStream stream = currentClient.GetStream();
 					string message = Constants.P1CONNECTED;
 					byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
 
 					stream.Write(data, 0, data.Length);
-					Console.WriteLine("Sent to 1: {0}", message);
-					Interlocked.Add(ref acceptedClientsIndex, 1);
+					Console.WriteLine(Constants.SERVER_SENT, message);
+					Interlocked.Add(ref _acceptedClientsIndex, 1);
 					return;
 				}
 
-				Interlocked.Add(ref acceptedClientsIndex, 1);
+				Interlocked.Add(ref _acceptedClientsIndex, 1);
 			}
-
-			//TODO: watch out if one player disconnects!
 
 			//otherwise we have already one player connected, so lets
 			//inform both users they have been connected
-			if (acceptedClientsIndex == Constants.MAX_PLAYERS)
+			if (_acceptedClientsIndex == Constants.MAX_PLAYERS)
 				InformPlayersAboutConnection();
 		}
 
@@ -144,10 +129,10 @@ namespace server
 
 			SendMessageToAllClients(Constants.P2CONNECTED);
 
-			Thread.Sleep(Constants.DELAY_FASTUPDATE_MS); //wait 1s so the players load... TODO: consider receiving OK message?
+			Thread.Sleep(Constants.DELAY_FASTUPDATE_MS);
 
 			AssignPlayerIDs();
-			//after this the game should start!
+
 			GameStart();
 		}
 
@@ -158,7 +143,7 @@ namespace server
 			availableIDs[0] = Constants.P1ASSIGN;
 			availableIDs[1] = Constants.P2ASSIGN;
 
-			foreach (TcpClient client in acceptedClients)
+			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
@@ -166,13 +151,12 @@ namespace server
 					string message = availableIDs[i];
 					byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
 					stream.Write(msg, 0, msg.Length);
-					Console.WriteLine("Sent to {0}: {1}", i + 1, message);
+					Console.WriteLine(Constants.SERVER_SENT, i + 1, message);
 					i++;
 				}
 				catch (Exception e)
 				{
-					//one of the players disconnected...
-					this.playerDisconnected = true;
+					this._playerDisconnected = true;
 					continue;
 				}
 			}
@@ -181,6 +165,7 @@ namespace server
 		private void AssignBaseRegions()
         {
 			//firstly, we have to pick a random region and assign it to the players
+			//this could be done in an for loop, but again there are some limits so it would have to be re-done anyway
 			Array values = Enum.GetValues(typeof(Constants.Region));
 			Random random = new Random();
 			Constants.Region player1Base = (Constants.Region)values.GetValue(random.Next(values.Length));
@@ -191,8 +176,8 @@ namespace server
 				player2Base = (Constants.Region)values.GetValue(random.Next(values.Length)); //pick another one
 			}
 
-			gameInformation.setBase(1, player1Base);
-			gameInformation.setBase(2, player2Base);
+			_gameInformation.setBase(1, player1Base);
+			_gameInformation.setBase(2, player2Base);
 
 			SendGameInfoAndCheckDisconnect();
 		}
@@ -200,20 +185,16 @@ namespace server
 		private void SendGameInfoAndCheckDisconnect()
         {
 			//basically just check if someone disconnected... if yes, inform the client
-			if (this.playerDisconnected)
+			if (this._playerDisconnected)
 			{
-				SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + "X");
+				SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + Constants.INVALID_CLIENT_ID);
 			}
-			else SendMessageToAllClients(gameInformation.EncodeInformationToString());
+			else SendMessageToAllClients(_gameInformation.EncodeInformationToString());
         }
 
 		private void GameStart()
         {
 			AssignBaseRegions();
-
-			sw = new();
-			sw.Start();
-
 			
 			for(int i = 0; i < Constants.FIRST_ROUND_QUESTIONS_COUNT; i++)
             {
@@ -243,15 +224,16 @@ namespace server
 
 		private void DecideWinnerBasedOnPoints()
         {
+			//this also applies just to two players
 			string message;
 
-            if (gameInformation.Points[0] > gameInformation.Points[1])
+            if (_gameInformation.Points[0] > _gameInformation.Points[1])
             {
 				message = GameOverMessage(1);
             }
-			else if (gameInformation.Points[0] == gameInformation.Points[1])
+			else if (_gameInformation.Points[0] == _gameInformation.Points[1])
             {
-				message = GameOverMessage(-1); //tie
+				message = GameOverMessage(Constants.INVALID_CLIENT_ID); //tie
             }
 			else
             {
@@ -274,25 +256,25 @@ namespace server
 
 			//wait for the picks
 			Thread.Sleep(Constants.DELAY_FIRSTROUND_PICKS);
+
 			string[] receivedData = new string[Constants.MAX_PLAYERS];
 			Int32 bytes;
 			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
 			int i = 0;
 
-			foreach (TcpClient client in acceptedClients)
+			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
 					NetworkStream stream = client.GetStream();
 					bytes = stream.Read(data, 0, data.Length);
 					receivedData[i] = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine("Received: {0}", receivedData[i]);
+					Console.WriteLine(Constants.SERVER_RECEIVE, receivedData[i]);
 					i++;
 				}
 				catch (Exception e)
 				{
-					//one of the players disconnected...
-					this.playerDisconnected = true;
+					this._playerDisconnected = true;
 					continue;
 				}
 			}
@@ -310,11 +292,10 @@ namespace server
 			Constants.Region reg;
 			if (repeatedBaseAttack)
             {
-				reg = this.gameInformation.Bases[otherID - 1];
+				reg = this._gameInformation.Bases[otherID - 1];
             }
 			else
             {
-				//wait for the picks and send an message which region is being attacked
 				reg = PicksSecondRound(attackerID);
 			}
 
@@ -323,7 +304,6 @@ namespace server
 			string question = PickRandomABCDQuestion();
 			SendMessageToAllClients(question);
 
-			//now receive the answers
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 			//we have sent the question. Now we have to wait to register all answers...
 			string responseData;
@@ -333,27 +313,25 @@ namespace server
 			string[] answers = new string[Constants.MAX_PLAYERS];
 			int i = 0;
 
-			foreach (TcpClient client in acceptedClients)
+			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
 					NetworkStream stream = client.GetStream();
 					bytes = stream.Read(data, 0, data.Length);
 					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine("Received: {0}", responseData);
+					Console.WriteLine(Constants.SERVER_RECEIVE, responseData);
 					string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
 					answers[i] = splitData[2];
 					i++;
 				}
 				catch (Exception e)
 				{
-					//one of the players disconnected...
-					this.playerDisconnected = true;
+					this._playerDisconnected = true;
 					continue;
 				}
 			}
 
-			//now it is time to send back answers...
 			DecideSecondRoundWinnerFirstQuestion(answers, question, attackerID, otherID, reg);
 		}
 
@@ -405,10 +383,10 @@ namespace server
 			//only the attacker answered correctly
 			//either way change the points + owner of the region or subtract 1HP from the base
 			//and dont forget to add it to the high value regions
-			if (attackedRegion == this.gameInformation.Bases[defenderID - 1])
+			if (attackedRegion == this._gameInformation.Bases[defenderID - 1])
 			{
-				this.gameInformation.decreaseBaseHealth(defenderID);
-				if (this.gameInformation.BaseHealths[defenderID - 1] == 0)
+				this._gameInformation.decreaseBaseHealth(defenderID);
+				if (this._gameInformation.BaseHealths[defenderID - 1] == 0)
 				{
 					Thread.Sleep(Constants.DELAY_ENDGAME);
 					SendMessageToAllClients(GameOverMessage(attackerID));
@@ -422,18 +400,18 @@ namespace server
 			}
 			else
 			{
-				if (this.gameInformation.HighValueRegions.Contains(attackedRegion))
+				if (this._gameInformation.HighValueRegions.Contains(attackedRegion))
 				{
-					this.gameInformation.addPoints(defenderID, -Constants.POINTS_HIGH_VALUE_REGION);
+					this._gameInformation.addPoints(defenderID, -Constants.POINTS_HIGH_VALUE_REGION);
 				}
 				else
 				{
-					this.gameInformation.addPoints(defenderID, -Constants.POINTS_BASIC_REGION);
+					this._gameInformation.addPoints(defenderID, -Constants.POINTS_BASIC_REGION);
 				}
-				this.gameInformation.addPoints(attackerID, Constants.POINTS_HIGH_VALUE_REGION);
-				this.gameInformation.addRegion(attackerID, attackedRegion);
-				this.gameInformation.removeRegion(defenderID, attackedRegion);
-				this.gameInformation.addHighValueRegion(attackedRegion);
+				this._gameInformation.addPoints(attackerID, Constants.POINTS_HIGH_VALUE_REGION);
+				this._gameInformation.addRegion(attackerID, attackedRegion);
+				this._gameInformation.removeRegion(defenderID, attackedRegion);
+				this._gameInformation.addHighValueRegion(attackedRegion);
 				SendGameInfoAndCheckDisconnect();
 			}
 		}
@@ -441,8 +419,7 @@ namespace server
 		private void SecondRoundDefenderWin(int defenderID)
         {
 			//defender answered ok
-			//just update points (+100) def
-			this.gameInformation.addPoints(defenderID, Constants.POINTS_DEFENDER_WIN);
+			this._gameInformation.addPoints(defenderID, Constants.POINTS_DEFENDER_WIN);
 			SendGameInfoAndCheckDisconnect();
 		}
 
@@ -457,7 +434,6 @@ namespace server
 			string question = PickRandomNumberQuestion();
 			SendMessageToAllClients(question);
 
-
             Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 			//we have sent the question. Now we have to wait to register all answers...
 			string responseData;
@@ -469,14 +445,14 @@ namespace server
 
 			int i = 0;
 
-			foreach (TcpClient client in acceptedClients)
+			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
 					NetworkStream stream = client.GetStream();
 					bytes = stream.Read(data, 0, data.Length);
 					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine("Received: {0}", responseData);
+					Console.WriteLine(Constants.SERVER_RECEIVE, responseData);
 					string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
 					answers[i] = Int32.Parse(splitData[2]);
 					times[i] = Int32.Parse(splitData[3]);
@@ -484,8 +460,7 @@ namespace server
 				}
 				catch (Exception e)
 				{
-					//one of the players disconnected...
-					this.playerDisconnected = true;
+					this._playerDisconnected = true;
 					continue;
 				}
 			}
@@ -522,7 +497,7 @@ namespace server
 			foreach (string current in data)
 			{
 				string[] splitData = current.Split(Constants.GLOBAL_DELIMITER);
-				if (splitData[2] != "-1")
+				if (splitData[2] != Constants.INVALID_CLIENT_ID.ToString())
 				{
 					int player = Int32.Parse(splitData[1]);
 					if (Enum.TryParse(splitData[2], out Constants.Region reg))
@@ -557,7 +532,7 @@ namespace server
 				if (times[0] < times[1])
 				{
 					decideWin(answers, times, rightAnswer, 1, 2, region, defenderID, attackerID);
-				}   //TODO: consider case where equal - very unlikely but still possible?
+				}   //consider case where equal - very unlikely but still possible?
 				else
 				{
 					decideWin(answers, times, rightAnswer, 2, 1, region, defenderID, attackerID);
@@ -571,7 +546,6 @@ namespace server
 
 		private void FirstRound()
         {
-			//send an question to the clients...
 			string question = PickRandomNumberQuestion();
 
 			SendMessageToAllClients(question);
@@ -587,14 +561,14 @@ namespace server
 
 			int i = 0;
 
-			foreach (TcpClient client in acceptedClients)
+			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
 					NetworkStream stream = client.GetStream();
 					bytes = stream.Read(data, 0, data.Length);
 					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine("Received: {0}", responseData);
+					Console.WriteLine(Constants.SERVER_RECEIVE, responseData);
 					string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
 					answers[i] = Int32.Parse(splitData[2]);
 					times[i] = Int32.Parse(splitData[3]);
@@ -602,16 +576,12 @@ namespace server
 				}
 				catch (Exception e)
 				{
-					//one of the players disconnected...
-					this.playerDisconnected = true;
+					this._playerDisconnected = true;
 					continue;
 				}
 			}
 
-			//now it is time to compare the answers...
-			//first compare by the actual answers
 			DecideNumberQuestionWinnerAndInform(answers, times, question, FirstRoundWin, null, null, null);
-
 		}
 
 		private void FirstRoundWin(int[] answers, int[] times, int rightAnswer, int winnerID, int loserID, Constants.Region? reg, int? x, int? y)
@@ -627,8 +597,6 @@ namespace server
 			SendFirstRoundPickAnnouncement(winnerID);
 			SendFirstRoundPickAnnouncement(winnerID);
 			SendFirstRoundPickAnnouncement(loserID);
-			sw.Stop();
-			Console.WriteLine("First round total time elapsed (ms): " + sw.ElapsedMilliseconds);
 		}
 
 		private void SendFirstRoundPickAnnouncement(int clientID)
@@ -644,20 +612,19 @@ namespace server
 			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
 			int i = 0;
 
-			foreach (TcpClient client in acceptedClients)
+			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
 					NetworkStream stream = client.GetStream();
 					bytes = stream.Read(data, 0, data.Length);
 					receivedData[i] = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine("Received: {0}", receivedData[i]);
+					Console.WriteLine(Constants.SERVER_RECEIVE, receivedData[i]);
 					i++;
 				}
 				catch (Exception e)
 				{
-					//one of the players disconnected...
-					this.playerDisconnected = true;
+					this._playerDisconnected = true;
 					continue;
 				}
 			}
@@ -671,13 +638,13 @@ namespace server
 			foreach(string current in data)
             {
 				string[] splitData = current.Split(Constants.GLOBAL_DELIMITER);
-				if (splitData[2] != "-1")
+				if (splitData[2] != Constants.INVALID_CLIENT_ID.ToString())
 				{
 					int player = Int32.Parse(splitData[1]);
 					if (Enum.TryParse(splitData[2], out Constants.Region reg))
 					{
-						this.gameInformation.addPoints(player, Constants.POINTS_BASIC_REGION);
-						this.gameInformation.addRegion(player, reg);
+						this._gameInformation.addPoints(player, Constants.POINTS_BASIC_REGION);
+						this._gameInformation.addRegion(player, reg);
 						SendGameInfoAndCheckDisconnect();
 						break;
 					}
@@ -690,7 +657,7 @@ namespace server
 			byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
 
 			int i = 0;
-			foreach (TcpClient client in acceptedClients)
+			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
@@ -698,18 +665,18 @@ namespace server
 					{
 						NetworkStream stream = client.GetStream();
 						stream.Write(msg, 0, msg.Length);
-						Console.WriteLine("Sent to {0}: {1}", i + 1, message);
+						Console.WriteLine(Constants.SERVER_SENT, i + 1, message);
 						i++;
 					}
-					else throw new Exception();
+					else throw new Constants.DisconnectException();
 				}
 				catch (Exception e)
 				{
 					//one of the players disconnected
-					this.playerDisconnected = true;
+					this._playerDisconnected = true;
 					if (!message.StartsWith(Constants.PREFIX_DISCONNECTED))
                     {
-						SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + "X");
+						SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + Constants.INVALID_CLIENT_ID);
 						return;
 					}
 					continue;
@@ -730,20 +697,20 @@ namespace server
 		private string PickRandomABCDQuestion()
         {
 			Random rnd = new Random();
-			int r = rnd.Next(questionsABCDWithAnswers.Length - 1);
-			return Constants.PREFIX_QUESTIONABCD + questionsABCDWithAnswers[r];
+			int r = rnd.Next(_questionsABCDWithAnswers.Length - 1);
+			return Constants.PREFIX_QUESTIONABCD + _questionsABCDWithAnswers[r];
 		}
 
 		private string PickRandomNumberQuestion()
         {
 			Random rnd = new Random();
-			int r = rnd.Next(questionsABCDWithAnswers.Length - 1);
-			return Constants.PREFIX_QUESTIONNUMBER + questionsNumberWithAnswers[r];
+			int r = rnd.Next(_questionsABCDWithAnswers.Length - 1);
+			return Constants.PREFIX_QUESTIONNUMBER + _questionsNumericWithAnswers[r];
 		}
 
 		public void Reset()
 		{
-			foreach (TcpClient client in acceptedClients)
+			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
@@ -751,7 +718,7 @@ namespace server
 				}
 				catch (Exception e)
 				{
-					//this does not really matter...
+					//this does not really matter if we're resetting...
 					continue;
 				}
 			}
@@ -760,7 +727,7 @@ namespace server
 
 		public void Stop()
         {
-			foreach (TcpClient client in acceptedClients)
+			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
@@ -768,11 +735,11 @@ namespace server
 				}
 				catch (Exception e)
 				{
-					//this does not really matter...
+					//this does not really matter if we're stopping...
 					continue;
 				}
 			}
-			server.Stop();
+			_server.Stop();
 		}
 	}
 }

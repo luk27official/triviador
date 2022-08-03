@@ -18,53 +18,53 @@ using System.Windows.Shapes;
 namespace client
 {
     /// <summary>
-    /// Interakční logika pro QuestionABCDWindow.xaml
+    /// Interaction logic for QuestionABCDWindow.xaml
     /// </summary>
     public partial class QuestionABCDWindow : Window
     {
-        private int msElapsed;
-        private int msTotal;
-        private bool answered;
-        private System.Timers.Timer timer;
-        private NetworkStream stream;
-        private int clientID;
+        private int _millisecondsElapsed;
+        private int _millisecondsMaximum;
+        private bool _questionAnswered;
+        private System.Timers.Timer _timer;
+        private NetworkStream _networkStream;
+        private int _clientID;
 
         public QuestionABCDWindow(string data, NetworkStream stream, int clientID)
         {
             InitializeComponent();
             ParseQuestion(data);
-            this.msElapsed = 0;
-            this.msTotal = 1000;
-            this.stream = stream;
-            this.clientID = clientID;
+            this._millisecondsElapsed = 0;
+            this._millisecondsMaximum = 1000;
+            this._networkStream = stream;
+            this._clientID = clientID;
             TimerHandler();
         }
 
         private void TimerHandler()
         {
-            timer = new System.Timers.Timer(10);
+            _timer = new System.Timers.Timer(Constants.MS_MULTIPLIER);
 
-            timer.Elapsed += ChangeTimerLabel;
-            timer.AutoReset = true;
-            timer.Enabled = true;
+            _timer.Elapsed += ChangeTimerLabel;
+            _timer.AutoReset = true;
+            _timer.Enabled = true;
         }
 
         private void ChangeTimerLabel(object? source, ElapsedEventArgs e)
         {
-            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format("Time left: {0} seconds", (msTotal - msElapsed) / 100); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format(Constants.TIMELEFT, (_millisecondsMaximum - _millisecondsElapsed) / 100); });
 
-            msElapsed++;
+            _millisecondsElapsed++;
 
-            if (msElapsed > msTotal)
+            if (_millisecondsElapsed > _millisecondsMaximum)
             {
-                timer.Stop();
-                timer.Dispose();
+                _timer.Stop();
+                _timer.Dispose();
             }
 
-            if(msElapsed > msTotal)
+            if(_millisecondsElapsed > _millisecondsMaximum)
             {
-                timer.Stop();
-                timer.Dispose();
+                _timer.Stop();
+                _timer.Dispose();
                 TimeExpired();
             }
         }
@@ -72,21 +72,13 @@ namespace client
         private void TimeExpired()
         {
             //now we should wait for the server to send us the results
-            /*
-            App.Current.Dispatcher.Invoke((Action)delegate { answerAbtn.IsEnabled = false; });
-            App.Current.Dispatcher.Invoke((Action)delegate { answerBbtn.IsEnabled = false; });
-            App.Current.Dispatcher.Invoke((Action)delegate { answerCbtn.IsEnabled = false; });
-            App.Current.Dispatcher.Invoke((Action)delegate { answerDbtn.IsEnabled = false; });
-            */
-
-            if (!answered) //make sure we sent something
+            if (!_questionAnswered) //make sure we sent something
             {
-                string message = Constants.PREFIX_ANSWER + clientID + "_0"; //no answer
+                string message = Constants.PREFIX_ANSWER + _clientID + "_0"; //no answer - send zero
                 byte[] msg = Encoding.ASCII.GetBytes(message);
-                stream.Write(msg, 0, msg.Length);
-                Console.WriteLine("Sent to the server: {0}", message);
+                _networkStream.Write(msg, 0, msg.Length);
             }
-            answered = true;
+            _questionAnswered = true;
 
             //now lets wait for the response with information
             Byte[] data;
@@ -95,12 +87,11 @@ namespace client
             Int32 bytes;
             while (true) //wait for the first question
             {
-                bytes = stream.Read(data, 0, data.Length);
+                bytes = _networkStream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                Console.WriteLine("Received: {0}", responseData);
                 if (responseData.StartsWith(Constants.PREFIX_DISCONNECTED))
                 {
-                    HandleEnemyDisconnect();
+                    ClientCommon.HandleEnemyDisconnect();
                 }
                 else if (responseData.StartsWith(Constants.PREFIX_FINALANSWERS)) //handle answers
                 {
@@ -111,24 +102,13 @@ namespace client
 
         }
 
-        private void HandleEnemyDisconnect()
-        {
-            MessageBoxButton button = MessageBoxButton.OK;
-            MessageBoxImage icon = MessageBoxImage.Exclamation;
-            MessageBoxResult result;
-
-            result = MessageBox.Show(Constants.GAMEOVER_DISCONNECT, "Game over!", button, icon, MessageBoxResult.Yes);
-            App.Current.Dispatcher.Invoke((Action)delegate {
-                System.Windows.Application.Current.Shutdown();
-                Environment.Exit(0);
-            });
-        }
-
         private void ShowFinalAnswers(string data)
         {
             string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
             //finalanswers_correctANS_P1ANS_P2ANS
             string correctAnswer = splitData[1];
+            //this could be done maybe a bit better, but more players would change the visual,
+            //so it would have to be re-done anyway...
             string p1Answer = splitData[2];
             string p2Answer = splitData[3];
 
@@ -136,36 +116,34 @@ namespace client
 
             foreach(Button button in buttons)
             {
-                App.Current.Dispatcher.Invoke((Action)delegate {
+                App.Current.Dispatcher.Invoke((Action)delegate
+                {
                     if (button.Content.ToString() == correctAnswer)
                     {
                         button.BorderThickness = new Thickness(5);
-                        button.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 50, 255, 50));
+                        button.BorderBrush = BrushesAndColors.CORRECTANSWER_BRUSH;
                     }
 
                     if (button.Content.ToString() == p1Answer && (p1Answer == p2Answer))
                     {
                         LinearGradientBrush linGrBrush = new LinearGradientBrush(
-                            Color.FromArgb(255, 255, 0, 0),   // Opaque red
-                            Color.FromArgb(255, 0, 0, 255), 0);  // Opaque blue
-                                                                 //2 colors
+                            BrushesAndColors.REGION_COLORS[0],
+                            BrushesAndColors.REGION_COLORS[1],
+                            0);
                         button.Background = linGrBrush;
                     }
                     else if (button.Content.ToString() == p1Answer)
                     {
-                        button.Background = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0));
-                        //red color
+                        button.Background = BrushesAndColors.REGION_BRUSHES[0];
                     }
                     else if (button.Content.ToString() == p2Answer)
                     {
-                        button.Background = new SolidColorBrush(Color.FromArgb(255, 0, 0, 255));
-                        //blue color
+                        button.Background = BrushesAndColors.REGION_BRUSHES[1];
                     }
                 });
             }
 
-            //wait 5s so the clients can see the final answers
-            Thread.Sleep(5000);
+            Thread.Sleep(Constants.DELAY_SHOWANSWERS);
             App.Current.Dispatcher.Invoke((Action)delegate { this.Close(); });
         }
 
@@ -193,20 +171,15 @@ namespace client
 
         private void HandleClick(string? answer, object sender)
         {
-            if (answered) return;
+            if (_questionAnswered) return;
 
-            answered = true;
+            _questionAnswered = true;
 
-            Brush[] brushes = new Brush[Constants.MAX_PLAYERS];
-            brushes[0] = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0)); //red
-            brushes[1] = new SolidColorBrush(Color.FromArgb(255, 0, 0, 255)); //blue
+            (sender as Button).Background = BrushesAndColors.REGION_BRUSHES[_clientID];
 
-            (sender as Button).Background = brushes[clientID];
-
-            string message = Constants.PREFIX_ANSWER + clientID + Constants.GLOBAL_DELIMITER + answer; //no answer
+            string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + answer;
             byte[] msg = Encoding.ASCII.GetBytes(message);
-            stream.Write(msg, 0, msg.Length);
-            Console.WriteLine("Sent to the server: {0}", message);
+            _networkStream.Write(msg, 0, msg.Length);
         }
 
         private void answerAbtn_Click(object sender, RoutedEventArgs e)

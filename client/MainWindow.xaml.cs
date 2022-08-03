@@ -20,7 +20,7 @@ namespace client
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
-    /// </summary>+
+    /// </summary>
     public partial class MainWindow : Window
     {
         private bool _isConnected = false;
@@ -28,19 +28,6 @@ namespace client
         public MainWindow()
         {
             InitializeComponent();
-        }
-
-        private void HandleEnemyDisconnect()
-        {
-            MessageBoxButton button = MessageBoxButton.OK;
-            MessageBoxImage icon = MessageBoxImage.Exclamation;
-            MessageBoxResult result;
-
-            result = MessageBox.Show(Constants.GAMEOVER_DISCONNECT, "Game over!", button, icon, MessageBoxResult.Yes);
-            App.Current.Dispatcher.Invoke((Action)delegate {
-                System.Windows.Application.Current.Shutdown();
-                Environment.Exit(0);
-            });
         }
 
         private async void connectButton_Click(object sender, RoutedEventArgs e)
@@ -51,38 +38,27 @@ namespace client
                 string hostName = this.ipTextBox.Text;
                 if (!Int32.TryParse(this.portTextBox.Text, out int port))
                 {
-                    this.informationTextBox.Text = "Invalid port entered!";
+                    this.informationTextBox.Text = Constants.INVALID_PORT;
                     return;
                 }
-                //int port = 13000;
-                //string hostName = "127.0.0.1";
-
-                // Create a TcpClient.
-                // Note, for this client to work you need to have a TcpServer
-                // connected to the same address as specified by the server, port
-                // combination.
 
                 TcpClient client = new TcpClient(hostName, port);
                 _isConnected = true;
 
                 NetworkStream stream = client.GetStream();
 
-                // Translate the passed message into ASCII and store it as a Byte array.
                 Byte[] data;
-                data = new Byte[256];
+                data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
                 String responseData = String.Empty;
                 Int32 bytes;
 
                 while (true)
                 {
-                    //wait for beginning of the game and keep the information updated
                     bytes = await stream.ReadAsync(data, 0, data.Length);
                     responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                     this.informationTextBox.Text = responseData;
-                    Console.WriteLine("Received: {0}", responseData);
-                    if (responseData == Constants.P2CONNECTED)
+                    if (responseData == Constants.P2CONNECTED) //the game starts here
                     {
-                        //the game starts here
                         GameWindow gw = new GameWindow(stream);
                         gw.Show();
                         this.Close();
@@ -90,15 +66,9 @@ namespace client
                     }
                     else if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
                     {
-                        HandleEnemyDisconnect();
+                        ClientCommon.HandleEnemyDisconnect();
                     }
                 }
-
-                /*
-                // Close everything.
-                stream.Close();
-                client.Close();
-                */
             }
             catch (Exception e2)
             {

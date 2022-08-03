@@ -137,10 +137,13 @@ public static class Constants
 
 	public const int MAX_PLAYERS = 2;
 	public const int REGION_COUNT = 14;
+	public const int BASE_HP = 3;
 
 	public const int FIRST_ROUND_QUESTIONS_COUNT = 4;
 	public const int SECOND_ROUND_FIRST_VERSION_QUESTIONS_COUNT = 6;
 	public const int SECOND_ROUND_SECOND_VERSION_QUESTIONS_COUNT = 2;
+
+	public const int INVALID_CLIENT_ID = -1;
 
 	public const int DEFAULT_BUFFER_SIZE = 1024;
 
@@ -152,9 +155,12 @@ public static class Constants
 	public const string STARTING_SOON = "The round will start in a few seconds. Get ready to answer!";
 	public const string PLAYER_ID_LABEL = "My player ID is {0}";
 	public const string PLAYER_PICKED = "You have picked: {0}";
-
 	public const string ERROR_MENU = "An error occured. Try again later or check the connection information. Error message: {0}";
-	public const string SERVER_RESET = "Server data reset!";
+	public const string INVALID_PORT = "Invalid port entered!";
+
+	public const string QUESTION_RESULT = "P{0} answer and time: {1}, {2}";
+	public const string QUESTION_WINNER = "The right answer was: {0} --> P{1} Wins!";
+	public const string TIMELEFT = "Time left: {0} seconds";
 
 	public const string GAMEOVER_TIE = "Game over! It's a tie!";
 	public const string GAMEOVER_WIN = "Congratulations! You have won the game!";
@@ -164,25 +170,19 @@ public static class Constants
 	public const string P1CONNECTED = "You have been connected, waiting for player 2.";
 	public const string P2CONNECTED = "Both players have connected, game starting soon.";
 
-	public const string PREFIX_ASSIGN = "assign_";
 	public const string P1ASSIGN = "assign_p1";
 	public const string P2ASSIGN = "assign_p2";
 
+	public const string PREFIX_ASSIGN = "assign_";
 	public const string PREFIX_GAMEUPDATE = "gameupdate_";
-
 	public const string PREFIX_QUESTIONABCD = "questionAW_";
 	public const string PREFIX_QUESTIONNUMBER = "questionNUM_";
-
 	public const string PREFIX_ANSWER = "answer_";
-
 	public const string PREFIX_FINALANSWERS = "finalanswers_";
-
 	public const string PREFIX_PICKREGION = "pickregion_";
 	public const string PREFIX_PICKED = "picked_";
-
 	public const string PREFIX_ATTACK = "attack_";
 	public const string PREFIX_DISCONNECTED = "disconnected_";
-
 	public const string PREFIX_GAMEOVER = "gameover_";
 
 	public const int DELAY_FASTUPDATE_MS = 1000;
@@ -193,28 +193,31 @@ public static class Constants
 	public const int DELAY_WAITFORCLIENTUPDATE = 2000;
 	public const int DELAY_ENDGAME = 5000;
 	public const int DELAY_RESTART_SERVER = 5000;
-
 	public const int DELAY_BETWEEN_ROUNDS = 4000;
-
 	public const int DELAY_CLIENT_PICK = 5000;
 	public const int DELAY_CLIENT_NEXTPICK = 8000;
-
-	public const int LENGTH_FIRSTROUND_TOTAL = 50000;
 
 	public const int POINTS_BASIC_REGION = 200;
 	public const int POINTS_HIGH_VALUE_REGION = 400;
 	public const int POINTS_DEFENDER_WIN = 100;
+	public const int POINTS_START = 1000;
+
+	public const int QUESTION_TIME = 1000; //in tens of ms
+	public const int MS_MULTIPLIER = 10;
 
 	public const string CONFIG_FILENAME = "config.cfg";
 	public const string QUESTIONS_ABCD_FILENAME = "questionsABCD.txt";
 	public const string QUESTIONS_NUMS_FILENAME = "questionsNumber.txt";
 
+	public const string SERVER_ACCEPT = "Accepted client {0}";
 	public const string SERVER_LISTEN = "Server listening at {0}:{1}";
 	public const string SERVER_ERROR = "An error occured. Is your config file valid?";
 	public const string SERVER_USING_DEFAULT = "Using default settings - Server listening at {0}:{1}";
+	public const string SERVER_SENT = "Sent to 1: {0}";
+	public const string SERVER_RECEIVE = "Sent to 1: {0}";
+	public const string SERVER_RESET = "Server data reset!";
 
 	public const string DEFAULT_SERVER_HOSTNAME = "127.0.0.1";
 	public const int DEFAULT_SERVER_PORT = 13000;
-
 }
 

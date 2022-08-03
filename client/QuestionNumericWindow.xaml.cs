@@ -19,52 +19,52 @@ using System.Windows.Shapes;
 namespace client
 {
     /// <summary>
-    /// Interakční logika pro QuestionNumericWindow.xaml
+    /// Interaction logic for QuestionNumericWindow.xaml
     /// </summary>
     public partial class QuestionNumericWindow : Window
     {
-        private int msElapsed;
-        private int msTotal;
-        private System.Timers.Timer timer;
-        private bool answered;
-        private NetworkStream stream;
-        private int clientID;
-        private Stopwatch stopwatch;
+        private int _millisecondsElapsed;
+        private readonly int _millisecondsMaximum;
+        private System.Timers.Timer _timer;
+        private bool _questionAnswered;
+        private NetworkStream _networkStream;
+        private int _clientID;
+        private Stopwatch _stopwatch;
 
         public QuestionNumericWindow(string data, NetworkStream stream, int clientID)
         {
             InitializeComponent();
             ParseQuestion(data);
             this.answerTxtBox.Focus();
-            this.msElapsed = 0;
-            this.msTotal = 1000;
-            this.answered = false;
-            this.stream = stream;
-            this.clientID = clientID;
+            this._millisecondsElapsed = 0;
+            this._millisecondsMaximum = Constants.QUESTION_TIME;
+            this._questionAnswered = false;
+            this._networkStream = stream;
+            this._clientID = clientID;
             TimerHandler();
-            this.stopwatch = new();
-            stopwatch.Start();
+            this._stopwatch = new();
+            _stopwatch.Start();
         }
 
         private void TimerHandler()
         {
-            timer = new System.Timers.Timer(10);
+            _timer = new System.Timers.Timer(Constants.MS_MULTIPLIER);
 
-            timer.Elapsed += ChangeTimerLabel;
-            timer.AutoReset = true;
-            timer.Enabled = true;
+            _timer.Elapsed += ChangeTimerLabel;
+            _timer.AutoReset = true;
+            _timer.Enabled = true;
         }
 
-        private void ChangeTimerLabel(object source, ElapsedEventArgs e)
+        private void ChangeTimerLabel(object? source, ElapsedEventArgs e)
         {
-            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format("Time left: {0} seconds", (msTotal - msElapsed)/100); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format("Time left: {0} seconds", (_millisecondsMaximum - _millisecondsElapsed)/100); });
 
-            msElapsed++;
+            _millisecondsElapsed++;
 
-            if (msElapsed > msTotal)
+            if (_millisecondsElapsed > _millisecondsMaximum)
             {
-                timer.Stop();
-                timer.Dispose();
+                _timer.Stop();
+                _timer.Dispose();
                 TimeExpired();
             }
         }
@@ -74,29 +74,26 @@ namespace client
             //now we should wait for the server to send us the results
             App.Current.Dispatcher.Invoke((Action)delegate { this.answerTxtBox.IsEnabled = false; });
 
-            if (!answered) //make sure we sent something
+            if (!_questionAnswered) //make sure we sent something
             {
-                stopwatch.Stop();
-                string message = Constants.PREFIX_ANSWER + clientID + "_0_" + stopwatch.ElapsedMilliseconds;
+                _stopwatch.Stop();
+                string message = Constants.PREFIX_ANSWER + _clientID + "_0_" + _stopwatch.ElapsedMilliseconds;
                 byte[] msg = Encoding.ASCII.GetBytes(message);
-                stream.Write(msg, 0, msg.Length);
-                Console.WriteLine("Sent to the server: {0}", message);
+                _networkStream.Write(msg, 0, msg.Length);
             }
-            answered = true;
+            _questionAnswered = true;
 
-            //now lets wait for the response with information
             Byte[] data;
             data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
             String responseData = String.Empty;
             Int32 bytes;
-            while (true) //wait for the first question
+            while (true) //wait for the question
             {
-                bytes = stream.Read(data, 0, data.Length);
+                bytes = _networkStream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                Console.WriteLine("Received: {0}", responseData);
                 if (responseData.StartsWith(Constants.PREFIX_DISCONNECTED))
                 {
-                    HandleEnemyDisconnect();
+                    ClientCommon.HandleEnemyDisconnect();
                 }
                 else if (responseData.StartsWith(Constants.PREFIX_FINALANSWERS)) //handle question numeric
                 {
@@ -104,31 +101,17 @@ namespace client
                     break;
                 }
             }
-
-        }
-
-        private void HandleEnemyDisconnect()
-        {
-            MessageBoxButton button = MessageBoxButton.OK;
-            MessageBoxImage icon = MessageBoxImage.Exclamation;
-            MessageBoxResult result;
-
-            result = MessageBox.Show(Constants.GAMEOVER_DISCONNECT, "Game over!", button, icon, MessageBoxResult.Yes);
-            App.Current.Dispatcher.Invoke((Action)delegate {
-                System.Windows.Application.Current.Shutdown();
-                Environment.Exit(0);
-            });
         }
 
         private void ShowFinalAnswers(string data)
         {
             string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
-            App.Current.Dispatcher.Invoke((Action)delegate { this.p1label.Content = String.Format("P1 answer and time: {0}, {1}", splitData[1], splitData[3]); });
-            App.Current.Dispatcher.Invoke((Action)delegate { this.p2label.Content = String.Format("P2 answer and time: {0}, {1}", splitData[2], splitData[4]); });
-            App.Current.Dispatcher.Invoke((Action)delegate { this.playerWinlabel.Content = String.Format("The right answer was: {0} --> P{1} Wins!", splitData[5], Int32.Parse(splitData[6])); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.p1label.Content = String.Format(Constants.QUESTION_RESULT, "1", splitData[1], splitData[3]); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.p2label.Content = String.Format(Constants.QUESTION_RESULT, "2", splitData[2], splitData[4]); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.playerWinlabel.Content = String.Format(Constants.QUESTION_WINNER, splitData[5], Int32.Parse(splitData[6])); });
 
-            //wait 5s so the clients can see the final answers
-            Thread.Sleep(5000);
+            //wait some time so the clients can see the final answers
+            Thread.Sleep(Constants.DELAY_SHOWANSWERS);
             App.Current.Dispatcher.Invoke((Action)delegate { this.Close(); });
         }
 
@@ -138,36 +121,34 @@ namespace client
             this.questionLabel.Content = splitData[1];
         }
 
-        private void SubmitAnswer(string answer)
+        private void SubmitAnswer()
         {
-            //here send our response to the server
             this.answerTxtBox.IsEnabled = false;
-            stopwatch.Stop();
-            if(!Int32.TryParse(answerTxtBox.Text, out int ans))
+            _stopwatch.Stop();
+            if(!Int32.TryParse(this.answerTxtBox.Text, out int ans))
             {
                 ans = 0; //if invalid value pass an 0
             }
-            string message = Constants.PREFIX_ANSWER + clientID + Constants.GLOBAL_DELIMITER + ans.ToString() + Constants.GLOBAL_DELIMITER + stopwatch.ElapsedMilliseconds;
+            string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + ans.ToString() + Constants.GLOBAL_DELIMITER + _stopwatch.ElapsedMilliseconds;
             byte[] msg = Encoding.ASCII.GetBytes(message);
-            stream.Write(msg, 0, msg.Length);
-            Console.WriteLine("Sent to the server: {0}", message);
+            _networkStream.Write(msg, 0, msg.Length);
         }
 
         private void answerTxtBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Return && !answered)
+            if (e.Key == Key.Return && !_questionAnswered)
             {
-                SubmitAnswer(this.answerTxtBox.Text);
-                answered = true;
+                SubmitAnswer();
+                _questionAnswered = true;
             }
         }
 
         private void submitBtn_Click(object sender, RoutedEventArgs e)
         {
-            if(!answered)
+            if(!_questionAnswered)
             {
-                SubmitAnswer(this.answerTxtBox.Text);
-                answered = true;
+                SubmitAnswer();
+                _questionAnswered = true;
             }
         }
     }
