@@ -19,6 +19,9 @@ using Commons;
 
 namespace client
 {
+    /// <summary>
+    /// This static class contains all the brushes and colors used when coloring the board, buttons etc.
+    /// </summary>
     public static class BrushesAndColors {
 
         public static SolidColorBrush ATTACKED_REGION_BRUSH = new(Color.FromArgb(255, 0, 255, 0));
@@ -47,11 +50,11 @@ namespace client
             new SolidColorBrush(BASEREGION_COLORS[1]),
         };
 
-        public static Brush HIGHVALUEREGION_BRUSH = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0));
+        public static Brush HIGHVALUEREGION_BRUSH = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0)); //yellow, not used now
 
-        public static Brush REGIONCLICKED_BRUSH = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0));
+        public static Brush REGIONCLICKED_BRUSH = new SolidColorBrush(Color.FromArgb(255, 255, 255, 0)); //yellow
 
-        public static Brush CORRECTANSWER_BRUSH = new SolidColorBrush(Color.FromArgb(255, 50, 255, 50));
+        public static Brush CORRECTANSWER_BRUSH = new SolidColorBrush(Color.FromArgb(255, 50, 255, 50)); //lime green
 
         public static Brush[] HIGHVALUEREGION_BRUSHES => new Brush[Constants.MAX_PLAYERS]
         {
@@ -59,26 +62,34 @@ namespace client
             CreateHighValueRegionBrush(1),
         };
 
+        /// <summary>
+        /// Method creating a special brush for painting high valued regions.
+        /// </summary>
+        /// <param name="id">ID which picks the base background color.</param>
+        /// <returns>A special brush for HV regions.</returns>
         public static Brush CreateHighValueRegionBrush(int id)
         {
+            int size = 15;
             VisualBrush vb = new();
             vb.TileMode = TileMode.Tile;
-            vb.Viewport = new Rect(0, 0, 15, 15);
+            vb.Viewport = new Rect(0, 0, size, size);
             vb.ViewboxUnits = BrushMappingMode.Absolute;
-            vb.Viewbox = new Rect(0, 0, 15, 15);
+            vb.Viewbox = new Rect(0, 0, size, size);
             vb.ViewportUnits = BrushMappingMode.Absolute;
 
-            Grid g = new Grid();
+            Grid g = new();
             g.Background = BrushesAndColors.REGION_BRUSHES[id];
 
-            Path p1 = new Path();
+            Path p1 = new();
 
-            LineGeometry myLineGeometry = new LineGeometry();
-            myLineGeometry.StartPoint = new Point(0, 15);
-            myLineGeometry.EndPoint = new Point(15, 0);
+            LineGeometry myLineGeometry = new()
+            {
+                StartPoint = new Point(0, size),
+                EndPoint = new Point(size, 0)
+            };
 
             p1.Data = myLineGeometry;
-            p1.Stroke = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255));
+            p1.Stroke = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255)); //white
 
             g.Children.Add(p1);
             vb.Visual = g;
@@ -89,21 +100,26 @@ namespace client
 
     /// <summary>
     /// Interaction logic for GameWindow.xaml
+    /// This window controls the most part of the client side. It shows the board and game information.
     /// </summary>
     public partial class GameWindow : Window
     {
-        private NetworkStream _stream; //contains stream connected to the server
-        private GameInformation _gameInformation; //contains information about current game
-        private Window _questionWindow;
-        private Path[] _gameBoardPaths;
+        private NetworkStream _stream;
+        private GameInformation _gameInformation;
+        private Window _questionWindow;             //currently opened window
+        private Path[] _gameBoardPaths;             //used for clicking/coloring the regions
 
-        private bool _pickingRegion; //are we picking the region right now?
+        private bool _pickingRegion;                //are we picking the region right now?
         private bool _anotherWindowInFocus;
 
         private Constants.GameStatus _gameStatus;
         private int _attackRoundNumber;
         private int _clientID;
 
+        /// <summary>
+        /// Constructor for GameWindow.
+        /// </summary>
+        /// <param name="stream">Stream connected to the server.</param>
         public GameWindow(NetworkStream stream)
         {
             InitializeComponent();
@@ -136,6 +152,9 @@ namespace client
             Task.Run(() => Play()); //run the game in another thread, so we do not freeze the main one!
         }
 
+        /// <summary>
+        /// Controls the entire game, calls the rounds.
+        /// </summary>
         private void Play()
         {
             this._gameStatus = Constants.GameStatus.FirstRound;
@@ -147,27 +166,33 @@ namespace client
             this._gameStatus = Constants.GameStatus.SecondRound_FirstVersion;
             for (int i = 0; i < Constants.SECOND_ROUND_FIRST_VERSION_QUESTIONS_COUNT; i++)
             {
-                App.Current.Dispatcher.Invoke((Action)delegate { this.currentRndLabel.Content = "Current round: " + this._attackRoundNumber++; });
+                App.Current.Dispatcher.Invoke((Action)delegate { this.currentRndLabel.Content = String.Format(Constants.CURRENT_ROUND, this._attackRoundNumber++); });
                 SecondRound();
             }
 
             this._gameStatus = Constants.GameStatus.SecondRound_SecondVersion;
             for (int i = 0; i < Constants.SECOND_ROUND_SECOND_VERSION_QUESTIONS_COUNT; i++)
             {
-                App.Current.Dispatcher.Invoke((Action)delegate { this.currentRndLabel.Content = "Current round: " + this._attackRoundNumber++; });
+                App.Current.Dispatcher.Invoke((Action)delegate { this.currentRndLabel.Content = String.Format(Constants.CURRENT_ROUND, this._attackRoundNumber++ });
                 SecondRound();
             }
 
             UpdateGameInformation(); //for checking game over
         }
 
+        /// <summary>
+        /// Method called whilst returning from another window.
+        /// </summary>
+        /// <param name="sender">Window calling this method.</param>
+        /// <param name="e">Event arguments.</param>
         private void QuestionWindow_Closed(object? sender, EventArgs e)
         {
-            //we return from the question -> picking regions three times!
             this._anotherWindowInFocus = false;
         }
 
-        //here the game starts - wait for an assignment of ID
+        /// <summary>
+        /// Entry point for the client. Server assigns some ID to the client.
+        /// </summary>
         private void WaitForGameStart()
         {
             Byte[] data;
@@ -184,7 +209,7 @@ namespace client
                 {
                     ClientCommon.HandleEnemyDisconnect();
                 }
-                else if (responseData.StartsWith(Constants.PREFIX_ASSIGN))
+                else if (responseData.StartsWith(Constants.PREFIX_ASSIGN)) //got an id assigned
                 {
                     char lastChar = responseData[^1];
                     this._clientID = Int32.Parse(lastChar.ToString());
@@ -197,6 +222,9 @@ namespace client
             UpdateGameInformation();
         }
 
+        /// <summary>
+        /// Method updating game information such as points, regions, health and all other information needed based on server message.
+        /// </summary>
         private void UpdateGameInformation()
         {
             Byte[] data;
@@ -220,13 +248,17 @@ namespace client
                     UpdateWindowFromGameInformation();
                     break;
                 }
-                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER))
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER)) //handle game over
                 {
                     GameOver(responseData);
                 }
             }
         }
 
+        /// <summary>
+        /// Contains game logic for the first round.
+        /// First round consists of receiving a question, answering, picking regions and updating game data.
+        /// </summary>
         private void FirstRound()
         {
             App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = Constants.STARTING_SOON; });
@@ -245,7 +277,7 @@ namespace client
                 {
                     ClientCommon.HandleEnemyDisconnect();
                 }
-                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //handle question numeric
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //handle numeric question 
                 {
                     this._anotherWindowInFocus = true;
 
@@ -256,7 +288,7 @@ namespace client
                         this._questionWindow.Show();
                     });
                     App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                        this._questionWindow.Closed += QuestionWindow_Closed;
                     });
                     break;
                 }
@@ -271,6 +303,10 @@ namespace client
             PickingFirstRound();
         }
 
+        /// <summary>
+        /// This method waits for an instruction from the server to allow region picking.
+        /// Then it sends data about the picked region, if needed.
+        /// </summary>
         private void PickingFirstRound()
         {
             Byte[] data;
@@ -318,7 +354,24 @@ namespace client
             App.Current.Dispatcher.Invoke((Action)delegate { UpdateGameInformation(); });
         }
 
+        /// <summary>
+        /// Contains game logic for the second round.
+        /// Second round consists of picking a region, answering to a question (or more) and updating game data properly.
+        /// </summary>
+        private void SecondRound()
+        {
+            PickingSecondRound();
 
+            WaitForAttack();
+
+            Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+
+            SecondRoundWaitForQuestion();
+        }
+
+        /// <summary>
+        /// Method working similarly to PickingFirstRound. Waits for the pick and sends proper data to the server.
+        /// </summary>
         private void PickingSecondRound()
         {
             Byte[] data;
@@ -375,6 +428,9 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// Method which colors the attacked region based on the server response.
+        /// </summary>
         private void WaitForAttack()
         {
             Byte[] data;
@@ -404,18 +460,9 @@ namespace client
             }
         }
 
-        private void SecondRound()
-        {
-            //firstly wait for the pick...
-            PickingSecondRound();
-
-            WaitForAttack();
-
-            Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-
-            SecondRoundWaitForQuestion();
-        }
-
+        /// <summary>
+        /// Method which handles waiting for and execution of the first question of the second round.
+        /// </summary>
         private void SecondRoundWaitForQuestion()
         {
             Byte[] data;
@@ -432,7 +479,7 @@ namespace client
                 {
                     ClientCommon.HandleEnemyDisconnect();
                 }
-                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD))
                 {
                     this._anotherWindowInFocus = true;
 
@@ -444,7 +491,6 @@ namespace client
                     });
                     App.Current.Dispatcher.Invoke((Action)delegate {
                         this._questionWindow.Closed += QuestionWindow_Closed;
-                        //when it closes, it means that we/oponnent are about to pick a region
                     });
                     break;
                 }
@@ -453,6 +499,11 @@ namespace client
             SecondRoundAfterFirstQuestion();
         }
 
+        /// <summary>
+        /// Method handling return from the first question of the second round.
+        /// Because there are multiple possibilities of server responses, it is better to have
+        /// this method split.
+        /// </summary>
         private void SecondRoundAfterFirstQuestion()
         {
             Byte[] data;
@@ -463,7 +514,7 @@ namespace client
             //here we have to wait in the thread because there is an question open.
             SpinWait.SpinUntil(() => this._anotherWindowInFocus == false);
 
-            //here the client can receive 3 types of answers!!
+            //here the client can receive more types of answers!!
             while (true)
             {
                 bytes = _stream.Read(data, 0, data.Length);
@@ -484,13 +535,13 @@ namespace client
                         this._questionWindow.Show();
                     });
                     App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                        this._questionWindow.Closed += QuestionWindow_Closed;
                     });
 
                     SecondRoundAfterFirstQuestion();
                     return;
                 }
-                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //this means it was a tie
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //this means it was a tie OR some base was damaged
                 {
                     this._anotherWindowInFocus = true;
 
@@ -501,7 +552,7 @@ namespace client
                         this._questionWindow.Show();
                     });
                     App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                        this._questionWindow.Closed += QuestionWindow_Closed;
                     });
 
                     SecondRoundAfterFirstQuestion();
@@ -516,13 +567,17 @@ namespace client
                     });
                     return;
                 }
-                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER)) //this means game is over
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER)) //this means the game is over
                 {
                     GameOver(responseData);
                 }
             }
         }
 
+        /// <summary>
+        /// Handles client reaction when the game is over.
+        /// </summary>
+        /// <param name="data">String containing response data from the server (for the winner ID).</param>
         private void GameOver(string data)
         {
             string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
@@ -553,11 +608,11 @@ namespace client
             });
         }
 
-        //updates the game window based on the gameinformation property
+        /// <summary>
+        /// Updates the GameWindow based on the _gameInformation field. This includes updating textboxes and region colors.
+        /// </summary>
         private void UpdateWindowFromGameInformation()
         {
-            //basically this could be done in a foreach based on MAX_PLAYERS, but still
-
             TextBox[] pointsTextBoxes = new TextBox[Constants.MAX_PLAYERS] { this.p1pointsTextBox, this.p2pointsTextBox };
             TextBox[] healthTextBoxes = new TextBox[Constants.MAX_PLAYERS] { this.p1HealthTextBox, this.p2HealthTextBox };
 
@@ -604,6 +659,10 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// Method which sends information about the picked region to the server.
+        /// </summary>
+        /// <param name="region">Picked region.</param>
         private void SendPickedRegion(Constants.Region? region)
         {
             string message = Constants.PREFIX_PICKED + _clientID + Constants.GLOBAL_DELIMITER;
@@ -615,16 +674,15 @@ namespace client
             {
                 message += region.Value;
             }
-            SendMessageToServer(message);
-        }
 
-        private void SendMessageToServer(string message)
-        {
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _stream.Write(msg, 0, msg.Length);
-            //Debug.WriteLine("Sent to the server: {0}", message);
         }
 
+        /// <summary>
+        /// Method checking if there are any valid free region picks for the player.
+        /// </summary>
+        /// <returns>True, if there is at least one free region neighboring to one of the players' regions.</returns>
         private bool AreAnyMovesValid()
         {
             //the idea is to take all regions, then look at the free ones
@@ -650,6 +708,11 @@ namespace client
             return false;
         }
 
+        /// <summary>
+        /// Method handling all of the clicks from the map. Checks all of the pick logic.
+        /// </summary>
+        /// <param name="sender">Clicked region from the map (as C# "object").</param>
+        /// <param name="region">Clicked region from the map (as C# "Region").</param>
         private void HandleRegionClick(object sender, Constants.Region region)
         {
             if (!_pickingRegion) return;
@@ -685,6 +748,11 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// Colors the region when a pick occurs. Called from HandleRegionClick.
+        /// </summary>
+        /// <param name="sender">Clicked region from the map (as C# "object").</param>
+        /// <param name="region">Clicked region from the map (as C# "Region").</param>
         private void ActualRegionClickHandle(object? sender, Constants.Region region)
         {
             _pickingRegion = false;
@@ -695,6 +763,8 @@ namespace client
             this.gameStatusTextBox.Text = String.Format(Constants.PLAYER_PICKED, region.ToString());
             SendPickedRegion(region);
         }
+
+        //All of the methods below just assure that clicks on the map are handled.
 
         private void CZJC_MouseDown(object sender, MouseButtonEventArgs e)
         {

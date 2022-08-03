@@ -8,8 +8,14 @@ using Commons;
 
 namespace client
 {
+    /// <summary>
+    /// This static class contains all code common for some or all of the client windows.
+    /// </summary>
     internal static class ClientCommon
     {
+        /// <summary>
+        /// A method handling client reaction when one of the player disconnects.
+        /// </summary>
         public static void HandleEnemyDisconnect()
         {
             MessageBoxButton button = MessageBoxButton.OK;

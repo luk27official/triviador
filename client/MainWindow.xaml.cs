@@ -21,17 +21,26 @@ namespace client
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
+    /// This window is shown at the start of the game.
     /// </summary>
     public partial class MainWindow : Window
     {
         private bool _isConnected = false;
 
+        /// <summary>
+        /// Constructor for MainWindow.
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
         }
 
-        private async void connectButton_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// Method called when the connect button is clicked.
+        /// </summary>
+        /// <param name="sender">Connect button.</param>
+        /// <param name="e">Event arguments.</param>
+        private async void connectButton_Click(object? sender, RoutedEventArgs e)
         {
             if (_isConnected) return; //prevents from connecting multiple times
             try

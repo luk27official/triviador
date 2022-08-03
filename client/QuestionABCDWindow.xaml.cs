@@ -20,6 +20,8 @@ namespace client
 {
     /// <summary>
     /// Interaction logic for QuestionABCDWindow.xaml
+    /// This window contains a question with four possible options.
+    /// It is shown when created from GameWindow.
     /// </summary>
     public partial class QuestionABCDWindow : Window
     {
@@ -30,37 +32,44 @@ namespace client
         private NetworkStream _networkStream;
         private int _clientID;
 
+        /// <summary>
+        /// Constructor for QuestionABCDWindow.
+        /// </summary>
+        /// <param name="data">Question from the server.</param>
+        /// <param name="stream">Stream used to communicate between the server and this client.</param>
+        /// <param name="clientID">Current client identifier.</param>
         public QuestionABCDWindow(string data, NetworkStream stream, int clientID)
         {
             InitializeComponent();
             ParseQuestion(data);
             this._millisecondsElapsed = 0;
-            this._millisecondsMaximum = 1000;
+            this._millisecondsMaximum = Constants.QUESTION_TIME;
             this._networkStream = stream;
             this._clientID = clientID;
+            this._timer = new System.Timers.Timer(Constants.MS_MULTIPLIER);
             TimerHandler();
         }
 
+        /// <summary>
+        /// A method which starts a timer for the question.
+        /// </summary>
         private void TimerHandler()
         {
-            _timer = new System.Timers.Timer(Constants.MS_MULTIPLIER);
-
             _timer.Elapsed += ChangeTimerLabel;
             _timer.AutoReset = true;
             _timer.Enabled = true;
         }
 
+        /// <summary>
+        /// A method which updates the time label.
+        /// </summary>
+        /// <param name="source">A timer from TimerHandler method.</param>
+        /// <param name="e">Event arguments.</param>
         private void ChangeTimerLabel(object? source, ElapsedEventArgs e)
         {
-            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format(Constants.TIMELEFT, (_millisecondsMaximum - _millisecondsElapsed) / 100); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format(Constants.TIMELEFT, (_millisecondsMaximum - _millisecondsElapsed) / (Constants.QUESTION_TIME / Constants.MS_MULTIPLIER)); });
 
             _millisecondsElapsed++;
-
-            if (_millisecondsElapsed > _millisecondsMaximum)
-            {
-                _timer.Stop();
-                _timer.Dispose();
-            }
 
             if(_millisecondsElapsed > _millisecondsMaximum)
             {
@@ -70,23 +79,25 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// A method called by the timer when time for the question expires. 
+        /// Firstly assures some info has been sent, waits for the answers.
+        /// </summary>
         private void TimeExpired()
         {
-            //now we should wait for the server to send us the results
             if (!_questionAnswered) //make sure we sent something
             {
-                string message = Constants.PREFIX_ANSWER + _clientID + "_0"; //no answer - send zero
+                string message = Constants.PREFIX_ANSWER + _clientID + "_0"; //no answer -> send zero
                 byte[] msg = Encoding.ASCII.GetBytes(message);
                 _networkStream.Write(msg, 0, msg.Length);
             }
             _questionAnswered = true;
 
-            //now lets wait for the response with information
             Byte[] data;
             data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
             String responseData = String.Empty;
             Int32 bytes;
-            while (true) //wait for the first question
+            while (true)
             {
                 bytes = _networkStream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
@@ -103,10 +114,13 @@ namespace client
 
         }
 
+        /// <summary>
+        /// Updates the window with the answers and player information.
+        /// </summary>
+        /// <param name="data">Response data containing the answers and information about players.</param>
         private void ShowFinalAnswers(string data)
         {
             string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
-            //finalanswers_correctANS_P1ANS_P2ANS
             string correctAnswer = splitData[1];
             //this could be done maybe a bit better, but more players would change the visual,
             //so it would have to be re-done anyway...
@@ -148,6 +162,11 @@ namespace client
             App.Current.Dispatcher.Invoke((Action)delegate { this.Close(); });
         }
 
+        /// <summary>
+        /// Method returning a random button from the list. Used for shuffling the answers.
+        /// </summary>
+        /// <param name="list">List containing all form buttons.</param>
+        /// <returns>A random button from the list.</returns>
         private Button PickRandomButton(List<Button> list)
         {
             Random rnd = new Random();
@@ -155,6 +174,10 @@ namespace client
             return list[r];
         }
 
+        /// <summary>
+        /// Method updating the form labels and button contents with the question and possible options.
+        /// </summary>
+        /// <param name="data">Data from the server containing the question and options.</param>
         private void ParseQuestion(string data)
         {
             string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
@@ -170,6 +193,11 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// Method handling the sending of the picked answer to the server.
+        /// </summary>
+        /// <param name="answer">Answer to be sent.</param>
+        /// <param name="sender">A clicked button.</param>
         private void HandleClick(string? answer, object? sender)
         {
             if (_questionAnswered) return;
@@ -186,6 +214,7 @@ namespace client
             _networkStream.Write(msg, 0, msg.Length);
         }
 
+        //All of the methods below just assure that clicks on the buttons are handled.
         private void answerAbtn_Click(object sender, RoutedEventArgs e)
         {
             HandleClick(this.answerAbtn.Content.ToString(), sender);

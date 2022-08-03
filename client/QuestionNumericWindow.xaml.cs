@@ -21,6 +21,8 @@ namespace client
 {
     /// <summary>
     /// Interaction logic for QuestionNumericWindow.xaml
+    /// This window contains a question with a text field to enter the numeric answer.
+    /// It is shown when created from GameWindow.
     /// </summary>
     public partial class QuestionNumericWindow : Window
     {
@@ -32,6 +34,12 @@ namespace client
         private int _clientID;
         private Stopwatch _stopwatch;
 
+        /// <summary>
+        /// Constructor for QuestionNumericWindow.
+        /// </summary>
+        /// <param name="data">Question from the server.</param>
+        /// <param name="stream">Stream used to communicate between the server and this client.</param>
+        /// <param name="clientID">Current client identifier.</param>
         public QuestionNumericWindow(string data, NetworkStream stream, int clientID)
         {
             InitializeComponent();
@@ -48,6 +56,9 @@ namespace client
             _stopwatch.Start();
         }
 
+        /// <summary>
+        /// A method which starts a timer for the question.
+        /// </summary>
         private void TimerHandler()
         {
             _timer.Elapsed += ChangeTimerLabel;
@@ -55,6 +66,11 @@ namespace client
             _timer.Enabled = true;
         }
 
+        /// <summary>
+        /// A method which updates the time label.
+        /// </summary>
+        /// <param name="source">A timer from TimerHandler method.</param>
+        /// <param name="e">Event arguments.</param>
         private void ChangeTimerLabel(object? source, ElapsedEventArgs e)
         {
             App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format("Time left: {0} seconds", (_millisecondsMaximum - _millisecondsElapsed)/100); });
@@ -69,9 +85,12 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// A method called by the timer when time for the question expires. 
+        /// Firstly assures some info has been sent, waits for the answers.
+        /// </summary>
         private void TimeExpired()
         {
-            //now we should wait for the server to send us the results
             App.Current.Dispatcher.Invoke((Action)delegate { this.answerTxtBox.IsEnabled = false; });
 
             if (!_questionAnswered) //make sure we sent something
@@ -103,6 +122,10 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// Updates the window with the answer and player information.
+        /// </summary>
+        /// <param name="data">Response data containing the answers and information about players.</param>
         private void ShowFinalAnswers(string data)
         {
             string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
@@ -115,25 +138,37 @@ namespace client
             App.Current.Dispatcher.Invoke((Action)delegate { this.Close(); });
         }
 
+        /// <summary>
+        /// Method updating the form label with the question.
+        /// </summary>
+        /// <param name="data">Data from the server containing the question and options.</param>
         private void ParseQuestion(string data)
         {
             string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
             this.questionLabel.Text = splitData[1];
         }
 
+        /// <summary>
+        /// Method handling the sending of the answer to the server.
+        /// </summary>
         private void SubmitAnswer()
         {
             this.answerTxtBox.IsEnabled = false;
             _stopwatch.Stop();
             if(!Int32.TryParse(this.answerTxtBox.Text, out int ans))
             {
-                ans = 0; //if invalid value pass an 0
+                ans = 0; //if entered invalid value pass an 0
             }
             string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + ans.ToString() + Constants.GLOBAL_DELIMITER + _stopwatch.ElapsedMilliseconds;
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _networkStream.Write(msg, 0, msg.Length);
         }
 
+        /// <summary>
+        /// Method calling answer submit based on "Enter" key.
+        /// </summary>
+        /// <param name="sender">A text box with the answer.</param>
+        /// <param name="e">Event arguments.</param>
         private void answerTxtBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Return && !_questionAnswered)
@@ -143,6 +178,11 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// Method calling answer submit based on button click.
+        /// </summary>
+        /// <param name="sender">Submit button.</param>
+        /// <param name="e">Event arguments.</param>
         private void submitBtn_Click(object sender, RoutedEventArgs e)
         {
             if(!_questionAnswered)

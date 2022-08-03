@@ -160,6 +160,7 @@ namespace Commons
 		public const string PLAYER_PICKED = "You have picked: {0}";
 		public const string ERROR = "An error occured. Try again later or check the connection information. Error message: {0}";
 		public const string INVALID_PORT = "Invalid port entered!";
+		public const string CURRENT_ROUND = "Current round: {0}";
 
 		public const string QUESTION_RESULT = "P{0} answer and time: {1}, {2}";
 		public const string QUESTION_WINNER = "The right answer was: {0} --> P{1} Wins!";
