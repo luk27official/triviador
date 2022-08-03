@@ -502,8 +502,10 @@ namespace client
                     });
                     App.Current.Dispatcher.Invoke((Action)delegate {
                         this._questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
-                    }); //TODO: change this??
-                    break;
+                    });
+
+                    SecondRoundAfterFirstQuestion();
+                    return;
                 }
                 else if (responseData.StartsWith(Constants.PREFIX_GAMEUPDATE)) //this means the attack is over
                 {
@@ -594,17 +596,17 @@ namespace client
                 i++;
             }
 
-            i = 0;
             foreach (Constants.Region region in _gameInformation.HighValueRegions)
             {
+                i = 0;
                 foreach(var list in this._gameInformation.Regions)
                 {
                     if(list.Contains(region))
                     {
                         this._gameBoardPaths[(int)region].Fill = BrushesAndColors.HIGHVALUEREGION_BRUSHES[i];
                     }
+                    i++;
                 }
-                i++;
             }
         }
 
