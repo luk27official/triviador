@@ -14,6 +14,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Commons;
 
 namespace client
 {
@@ -169,14 +170,17 @@ namespace client
             }
         }
 
-        private void HandleClick(string? answer, object sender)
+        private void HandleClick(string? answer, object? sender)
         {
             if (_questionAnswered) return;
 
             _questionAnswered = true;
 
-            (sender as Button).Background = BrushesAndColors.REGION_BRUSHES[_clientID];
-
+            if(sender != null)
+            {
+                ((Button)sender).Background = BrushesAndColors.REGION_BRUSHES[_clientID];
+            }
+            
             string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + answer;
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _networkStream.Write(msg, 0, msg.Length);

@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Commons;
 
 namespace server
 {
@@ -29,18 +30,22 @@ namespace server
         {
 			try
             {
-				using (StreamReader reader = new StreamReader(Constants.CONFIG_FILENAME))
-				{
-					reader.ReadLine(); //we do not need the first one, its there just for reference
-					string line2 = reader.ReadLine(); //we do not need the first one
-													  //from the second one parse ip and port
+                using StreamReader reader = new(Constants.CONFIG_FILENAME);
+
+                reader.ReadLine(); //we do not need the first one, its there just for reference
+                string? line2 = reader.ReadLine(); //we do not need the first one
+                                                  //from the second one parse ip and port
+				if(line2 != null)
+                {
 					string[] splitLine2 = line2.Split(Constants.GLOBAL_DELIMITER);
 					IPAddress localAddr = IPAddress.Parse(splitLine2[0]);
 					Int32 port = Int32.Parse(splitLine2[1]);
 					_server = new TcpListener(localAddr, port);
-                    Console.WriteLine(String.Format(Constants.SERVER_LISTEN, localAddr, port));
+					Console.WriteLine(String.Format(Constants.SERVER_LISTEN, localAddr, port));
 				}
-			}
+                Console.WriteLine(Constants.SERVER_INVALID_CFG);
+				return;
+            }
 			catch
             {
 				_server = new TcpListener(IPAddress.Parse(Constants.DEFAULT_SERVER_HOSTNAME), Constants.DEFAULT_SERVER_PORT); //default settings
@@ -76,13 +81,13 @@ namespace server
 					{
 						task.Wait();
 					}
-					catch (Exception e)
+					catch (Exception)
 					{
 						throw new Constants.DisconnectException();
                     }
 				}
 			}
-			catch (Constants.DisconnectException e)
+			catch (Constants.DisconnectException)
             {
 				throw new Constants.DisconnectException();
 			}
@@ -154,7 +159,7 @@ namespace server
 					Console.WriteLine(Constants.SERVER_SENT, i + 1, message);
 					i++;
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					this._playerDisconnected = true;
 					continue;
@@ -166,14 +171,15 @@ namespace server
         {
 			//firstly, we have to pick a random region and assign it to the players
 			//this could be done in an for loop, but again there are some limits so it would have to be re-done anyway
-			Array values = Enum.GetValues(typeof(Constants.Region));
-			Random random = new Random();
-			Constants.Region player1Base = (Constants.Region)values.GetValue(random.Next(values.Length));
+			var list = Enum.GetValues(typeof(Constants.Region)).Cast<Constants.Region>().ToList();
+			Random random = new();
 
-			Constants.Region player2Base = (Constants.Region)values.GetValue(random.Next(values.Length));
+			Constants.Region player1Base = list[random.Next(list.Count)];
+			Constants.Region player2Base = list[random.Next(list.Count)];
+
 			while (player1Base == player2Base || Constants.DoRegionsNeighbor(player1Base, new List<Constants.Region>() { player2Base }))
 			{
-				player2Base = (Constants.Region)values.GetValue(random.Next(values.Length)); //pick another one
+				player2Base = list[random.Next(list.Count)]; //pick another one
 			}
 
 			_gameInformation.setBase(1, player1Base);
@@ -252,7 +258,7 @@ namespace server
 					times[i] = Int32.Parse(splitData[3]);
 					i++;
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					this._playerDisconnected = true;
 					continue;
@@ -300,7 +306,7 @@ namespace server
 					Console.WriteLine(Constants.SERVER_RECEIVE, receivedData[i]);
 					i++;
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					this._playerDisconnected = true;
 					continue;
@@ -348,7 +354,7 @@ namespace server
 					}
 					else throw new Constants.DisconnectException();
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					//one of the players disconnected
 					this._playerDisconnected = true;
@@ -390,7 +396,7 @@ namespace server
 					Console.WriteLine(Constants.SERVER_RECEIVE, receivedData[i]);
 					i++;
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					this._playerDisconnected = true;
 					continue;
@@ -443,7 +449,7 @@ namespace server
 					answers[i] = splitData[2];
 					i++;
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					this._playerDisconnected = true;
 					continue;
@@ -576,7 +582,7 @@ namespace server
 					times[i] = Int32.Parse(splitData[3]);
 					i++;
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					this._playerDisconnected = true;
 					continue;
@@ -617,7 +623,6 @@ namespace server
 				string[] splitData = current.Split(Constants.GLOBAL_DELIMITER);
 				if (splitData[2] != Constants.INVALID_CLIENT_ID.ToString())
 				{
-					int player = Int32.Parse(splitData[1]);
 					if (Enum.TryParse(splitData[2], out Constants.Region reg))
 					{
 						return reg;
@@ -691,14 +696,14 @@ namespace server
 
 		private string PickRandomABCDQuestion()
         {
-			Random rnd = new Random();
+			Random rnd = new();
 			int r = rnd.Next(_questionsABCDWithAnswers.Length - 1);
 			return Constants.PREFIX_QUESTIONABCD + _questionsABCDWithAnswers[r];
 		}
 
 		private string PickRandomNumberQuestion()
         {
-			Random rnd = new Random();
+			Random rnd = new();
 			int r = rnd.Next(_questionsABCDWithAnswers.Length - 1);
 			return Constants.PREFIX_QUESTIONNUMBER + _questionsNumericWithAnswers[r];
 		}
@@ -711,7 +716,7 @@ namespace server
 				{
 					if(client != null) client.Close();
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					//this does not really matter if we're resetting...
 					continue;
@@ -728,7 +733,7 @@ namespace server
 				{
 					if (client != null) client.Close();
 				}
-				catch (Exception e)
+				catch (Exception)
 				{
 					//this does not really matter if we're stopping...
 					continue;

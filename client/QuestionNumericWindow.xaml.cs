@@ -15,6 +15,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Commons;
 
 namespace client
 {
@@ -41,6 +42,7 @@ namespace client
             this._questionAnswered = false;
             this._networkStream = stream;
             this._clientID = clientID;
+            this._timer = new System.Timers.Timer(Constants.MS_MULTIPLIER);
             TimerHandler();
             this._stopwatch = new();
             _stopwatch.Start();
@@ -48,8 +50,6 @@ namespace client
 
         private void TimerHandler()
         {
-            _timer = new System.Timers.Timer(Constants.MS_MULTIPLIER);
-
             _timer.Elapsed += ChangeTimerLabel;
             _timer.AutoReset = true;
             _timer.Enabled = true;

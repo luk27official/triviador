@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using Commons;
 
 namespace server
 {
@@ -13,7 +14,7 @@ namespace server
             {
                 s.Start();
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //a player disconnected... it is better to create a new server.
             }

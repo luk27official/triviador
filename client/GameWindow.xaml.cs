@@ -15,12 +15,13 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Commons;
 
 namespace client
 {
     public static class BrushesAndColors {
 
-        public static SolidColorBrush ATTACKED_REGION_BRUSH = new SolidColorBrush(Color.FromArgb(255, 0, 255, 0));
+        public static SolidColorBrush ATTACKED_REGION_BRUSH = new(Color.FromArgb(255, 0, 255, 0));
 
         public static Color[] REGION_COLORS => new Color[Constants.MAX_PLAYERS]
         {
@@ -139,7 +140,7 @@ namespace client
         {
             Byte[] data;
             data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            String responseData = String.Empty;
+            string responseData;
             Int32 bytes;
 
             while (true) //wait for the ID assignment
@@ -153,7 +154,7 @@ namespace client
                 }
                 else if (responseData.StartsWith(Constants.PREFIX_ASSIGN))
                 {
-                    char lastChar = responseData[responseData.Length - 1];
+                    char lastChar = responseData[^1];
                     this._clientID = Int32.Parse(lastChar.ToString());
                     this.playerIDLabel.Content = String.Format(Constants.PLAYER_ID_LABEL, lastChar);
                     break;
@@ -168,7 +169,7 @@ namespace client
         {
             Byte[] data;
             data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            String responseData = String.Empty;
+            string responseData;
             Int32 bytes;
 
             while (true) //wait for new information about the game
@@ -278,7 +279,7 @@ namespace client
             if (_pickingRegion)
             {
                 _pickingRegion = false;
-                Constants.Region? reg = Constants.PickRandomFreeNeighboringRegion(_gameInformation.Regions[_clientID - 1], _gameInformation.Regions, _clientID - 1);
+                Constants.Region? reg = Constants.PickRandomFreeNeighboringRegion(_gameInformation.Regions, _clientID - 1);
                 SendPickedRegion(reg);
             }
 
@@ -539,7 +540,7 @@ namespace client
             }
 
             int i = 0;
-            List<Constants.Region> doneRegions = new List<Constants.Region>();
+            List<Constants.Region> doneRegions = new();
 
             foreach (var list in this._gameInformation.Regions)
             {
@@ -596,7 +597,7 @@ namespace client
             //then check if any of them neighbor any of our regions
 
             var allRegions = Enum.GetValues(typeof(Constants.Region)).Cast<Constants.Region>();
-            List<Constants.Region> populatedRegions = new List<Constants.Region>();
+            List<Constants.Region> populatedRegions = new();
             foreach (var list in this._gameInformation.Regions)
             {
                 populatedRegions.AddRange(list);
@@ -650,10 +651,13 @@ namespace client
             }
         }
 
-        private void ActualRegionClickHandle(object sender, Constants.Region region)
+        private void ActualRegionClickHandle(object? sender, Constants.Region region)
         {
             _pickingRegion = false;
-            (sender as Path).Fill = BrushesAndColors.REGIONCLICKED_BRUSH;
+            if(sender != null)
+            {
+                ((Path)sender).Fill = BrushesAndColors.REGIONCLICKED_BRUSH;
+            } 
             this.gameStatusTextBox.Text = String.Format(Constants.PLAYER_PICKED, region.ToString());
             SendPickedRegion(region);
         }
