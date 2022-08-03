@@ -8,11 +8,11 @@
         ResizeMode="NoResize"
         Title="Triviador: Question With Choices" Height="500" Width="500">
     <Grid>
-        <Label x:Name="questionLabel" Content="The question will appear here." HorizontalAlignment="Center" HorizontalContentAlignment="Center" Margin="0,10,0,0" VerticalAlignment="Top" FontSize="24" Height="129" Width="480" FontWeight="Bold"/>
-        <Button x:Name="answerAbtn" Content="Answer A" HorizontalAlignment="Left" Margin="25,144,0,0" VerticalAlignment="Top" FontSize="24" Height="50" Width="200" Click="answerAbtn_Click"/>
-        <Button x:Name="answerBbtn" Content="Answer B" HorizontalAlignment="Left" Margin="270,144,0,0" VerticalAlignment="Top" FontSize="24" Height="50" Width="200" Click="answerBbtn_Click"/>
-        <Button x:Name="answerCbtn" Content="Answer C" HorizontalAlignment="Left" Margin="25,249,0,0" VerticalAlignment="Top" FontSize="24" Height="50" Width="200" Click="answerCbtn_Click"/>
-        <Button x:Name="answerDbtn" Content="Answer D" HorizontalAlignment="Left" Margin="270,249,0,0" VerticalAlignment="Top" FontSize="24" Height="50" Width="200" Click="answerDbtn_Click"/>
+        <TextBlock x:Name="questionLabel" Text="The question will appear here." HorizontalAlignment="Center" Margin="0,10,0,0" VerticalAlignment="Top" FontSize="24" Height="202" Width="480" FontWeight="Bold" TextAlignment="Center" TextWrapping="WrapWithOverflow"/>
+        <Button x:Name="answerAbtn" Content="Answer A" HorizontalAlignment="Left" Margin="23,0,0,0" VerticalAlignment="Center" FontSize="16" Height="50" Width="200" Click="answerAbtn_Click"/>
+        <Button x:Name="answerBbtn" Content="Answer B" HorizontalAlignment="Left" Margin="268,0,0,0" VerticalAlignment="Center" FontSize="16" Height="50" Width="200" Click="answerBbtn_Click"/>
+        <Button x:Name="answerCbtn" Content="Answer C" HorizontalAlignment="Left" Margin="23,322,0,0" VerticalAlignment="Top" FontSize="16" Height="50" Width="200" Click="answerCbtn_Click"/>
+        <Button x:Name="answerDbtn" Content="Answer D" HorizontalAlignment="Left" Margin="268,322,0,0" VerticalAlignment="Top" FontSize="16" Height="50" Width="200" Click="answerDbtn_Click"/>
         <Label x:Name="timerLabel" Content="Time left: ??" HorizontalAlignment="Center" Margin="0,390,0,0" VerticalAlignment="Top" FontSize="24"/>
 
     </Grid>

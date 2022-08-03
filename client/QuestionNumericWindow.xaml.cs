@@ -118,7 +118,7 @@ namespace client
         private void ParseQuestion(string data)
         {
             string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
-            this.questionLabel.Content = splitData[1];
+            this.questionLabel.Text = splitData[1];
         }
 
         private void SubmitAnswer()
