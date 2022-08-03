@@ -43,7 +43,10 @@ namespace server
 					_server = new TcpListener(localAddr, port);
 					Console.WriteLine(String.Format(Constants.SERVER_LISTEN, localAddr, port));
 				}
-                Console.WriteLine(Constants.SERVER_INVALID_CFG);
+				else
+                {
+					Console.WriteLine(Constants.SERVER_INVALID_CFG);
+				}
 				return;
             }
 			catch
@@ -116,7 +119,7 @@ namespace server
 					byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
 
 					stream.Write(data, 0, data.Length);
-					Console.WriteLine(Constants.SERVER_SENT, message);
+					Console.WriteLine(Constants.SERVER_SENT, _acceptedClientsIndex + 1, message);
 					Interlocked.Add(ref _acceptedClientsIndex, 1);
 					return;
 				}

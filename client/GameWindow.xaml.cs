@@ -53,6 +53,38 @@ namespace client
 
         public static Brush CORRECTANSWER_BRUSH = new SolidColorBrush(Color.FromArgb(255, 50, 255, 50));
 
+        public static Brush[] HIGHVALUEREGION_BRUSHES => new Brush[Constants.MAX_PLAYERS]
+        {
+            CreateHighValueRegionBrush(0),
+            CreateHighValueRegionBrush(1),
+        };
+
+        public static Brush CreateHighValueRegionBrush(int id)
+        {
+            VisualBrush vb = new();
+            vb.TileMode = TileMode.Tile;
+            vb.Viewport = new Rect(0, 0, 15, 15);
+            vb.ViewboxUnits = BrushMappingMode.Absolute;
+            vb.Viewbox = new Rect(0, 0, 15, 15);
+            vb.ViewportUnits = BrushMappingMode.Absolute;
+
+            Grid g = new Grid();
+            g.Background = BrushesAndColors.REGION_BRUSHES[id];
+
+            Path p1 = new Path();
+
+            LineGeometry myLineGeometry = new LineGeometry();
+            myLineGeometry.StartPoint = new Point(0, 15);
+            myLineGeometry.EndPoint = new Point(15, 0);
+
+            p1.Data = myLineGeometry;
+            p1.Stroke = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255));
+
+            g.Children.Add(p1);
+            vb.Visual = g;
+
+            return vb;
+        }
     }
 
     /// <summary>
@@ -562,11 +594,17 @@ namespace client
                 i++;
             }
 
-            //TODO: maybe change this to fill?
+            i = 0;
             foreach (Constants.Region region in _gameInformation.HighValueRegions)
             {
-                this._gameBoardPaths[(int)region].Stroke = BrushesAndColors.HIGHVALUEREGION_BRUSH;
-                this._gameBoardPaths[(int)region].StrokeThickness = 2;
+                foreach(var list in this._gameInformation.Regions)
+                {
+                    if(list.Contains(region))
+                    {
+                        this._gameBoardPaths[(int)region].Fill = BrushesAndColors.HIGHVALUEREGION_BRUSHES[i];
+                    }
+                }
+                i++;
             }
         }
 
