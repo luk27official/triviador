@@ -20,6 +20,7 @@ namespace server
             finally
             {
                 s.Stop();
+                Console.WriteLine(Constants.SERVER_RESET_DISCONNECT);
                 CreateServer();
             }
         }

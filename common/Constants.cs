@@ -83,7 +83,7 @@ public static class Constants
 			}
 		}
 
-		int random = rnd.Next(shuffled.Count());
+		int random = rnd.Next(shuffled.Count);
 		return shuffled.ElementAt(random);
 	}
 
@@ -115,7 +115,7 @@ public static class Constants
 			if (DoRegionsNeighbor(region, all[clientID])) return region;
         }
 
-		int random = rnd.Next(shuffled.Count());
+		int random = rnd.Next(shuffled.Count);
 		return shuffled.ElementAt(random);
     }
 
@@ -155,7 +155,7 @@ public static class Constants
 	public const string STARTING_SOON = "The round will start in a few seconds. Get ready to answer!";
 	public const string PLAYER_ID_LABEL = "My player ID is {0}";
 	public const string PLAYER_PICKED = "You have picked: {0}";
-	public const string ERROR_MENU = "An error occured. Try again later or check the connection information. Error message: {0}";
+	public const string ERROR = "An error occured. Try again later or check the connection information. Error message: {0}";
 	public const string INVALID_PORT = "Invalid port entered!";
 
 	public const string QUESTION_RESULT = "P{0} answer and time: {1}, {2}";
@@ -216,8 +216,8 @@ public static class Constants
 	public const string SERVER_SENT = "Sent to 1: {0}";
 	public const string SERVER_RECEIVE = "Sent to 1: {0}";
 	public const string SERVER_RESET = "Server data reset!";
+	public const string SERVER_RESET_DISCONNECT = "A player disconnected or some other error occured. Restarting server...";
 
 	public const string DEFAULT_SERVER_HOSTNAME = "127.0.0.1";
 	public const int DEFAULT_SERVER_PORT = 13000;
 }
-

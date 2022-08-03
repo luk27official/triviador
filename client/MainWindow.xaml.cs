@@ -72,7 +72,7 @@ namespace client
             }
             catch (Exception e2)
             {
-                this.informationTextBox.Text = String.Format(Constants.ERROR_MENU, e2.Message);
+                this.informationTextBox.Text = String.Format(Constants.ERROR, e2.Message);
             }
         }
     }

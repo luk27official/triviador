@@ -53,6 +53,7 @@ namespace client
         public static Brush CORRECTANSWER_BRUSH = new SolidColorBrush(Color.FromArgb(255, 50, 255, 50));
 
     }
+
     /// <summary>
     /// Interaction logic for GameWindow.xaml
     /// </summary>
@@ -127,216 +128,70 @@ namespace client
             UpdateGameInformation(); //for checking game over
         }
 
-        private void PickingSecondRound()
-        {
-            Byte[] data;
-            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            String responseData = String.Empty;
-            Int32 bytes;
-
-            while (true)
-            {
-                bytes = _stream.Read(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                //Debug.WriteLine("Received 2ndRnd: " + responseData);
-
-                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
-                {
-                    ClientCommon.HandleEnemyDisconnect();
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_PICKREGION))
-                {
-                    string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
-                    App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.PLAYER_PICK_REGION, splitData[1]); });
-                    
-                    //if we are supposed to be picking!
-                    if (_clientID == Int32.Parse(splitData[1]))
-                    {
-                        _pickingRegion = true;
-                    }
-                    else
-                    {
-                        SendPickedRegion(null);
-                    }
-                    break;
-                }
-            }
-
-            //after 5s lets see if it picked something, if not, then pick random
-            Thread.Sleep(Constants.DELAY_CLIENT_PICK);
-
-            App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = Constants.SERVER_UPDATE; });
-            if (_pickingRegion)
-            {
-                _pickingRegion = false;
-                Constants.Region? reg;
-                if (_gameStatus == Constants.GameStatus.SecondRound_FirstVersion)
-                {
-                    reg = Constants.PickRandomEnemyRegion(_gameInformation.Regions, _clientID - 1, true);
-                }
-                else
-                {
-                    reg = Constants.PickRandomEnemyRegion(_gameInformation.Regions, _clientID - 1, false);
-                }
-                //Debug.WriteLine(reg);
-                SendPickedRegion(reg);
-            }
-        }
-
-        private void WaitForAttack()
-        {
-            Byte[] data;
-            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            String responseData = String.Empty;
-            Int32 bytes;
-
-            while (true)
-            {
-                bytes = _stream.Read(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
-                {
-                    ClientCommon.HandleEnemyDisconnect();
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_ATTACK))
-                {
-                    string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
-                    Enum.TryParse(splitData[1], out Constants.Region reg);
-                    App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.REGION_UNDER_ATTACK, splitData[1]); });
-                    App.Current.Dispatcher.Invoke((Action)delegate { this._gameBoardPaths[(int)reg].Fill = BrushesAndColors.ATTACKED_REGION_BRUSH; });
-                    break;
-                }
-
-            }
-        }
-
-        private void SecondRound()
-        {
-            //firstly wait for the pick...
-            PickingSecondRound();
-
-            WaitForAttack();
-
-            Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-
-            SecondRoundWaitForQuestion();
-        }
-
-        private void SecondRoundWaitForQuestion()
-        {
-            Byte[] data;
-            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            String responseData = String.Empty;
-            Int32 bytes;
-
-            while (true)
-            {
-                bytes = _stream.Read(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                //Debug.WriteLine("Received: " + responseData);
-                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
-                {
-                    ClientCommon.HandleEnemyDisconnect();
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
-                {
-                    this._anotherWindowInFocus = true;
-
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow = new QuestionABCDWindow(responseData, _stream, _clientID - 1);
-                    });
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow.Show();
-                    });
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow.Closed += QuestionWindow_Closed; 
-                        //when it closes, it means that we/oponnent are about to pick a region
-                    });
-                    break;
-                }
-            }
-
-            SecondRoundAfterFirstQuestion();
-        }
-
-        private void SecondRoundAfterFirstQuestion()
-        {
-            Byte[] data;
-            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            String responseData = String.Empty;
-            Int32 bytes;
-
-            //here we have to wait in the thread because there is an question open.
-            SpinWait.SpinUntil(() => this._anotherWindowInFocus == false);
-
-            //here the client can receive 3 types of answers!!
-            while (true)
-            {
-                bytes = _stream.Read(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                //Debug.WriteLine("Received: " + responseData);
-                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
-                {
-                    ClientCommon.HandleEnemyDisconnect();
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //this means that some base was damaged...
-                {
-                    this._anotherWindowInFocus = true;
-
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow = new QuestionABCDWindow(responseData, _stream, _clientID - 1);
-                    });
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow.Show();
-                    });
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
-                    });
-
-                    SecondRoundAfterFirstQuestion();
-                    return;
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //this means it was a tie
-                {
-                    this._anotherWindowInFocus = true;
-
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow = new QuestionNumericWindow(responseData, _stream, _clientID - 1);
-                    });
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow.Show();
-                    });
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        this._questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
-                    }); //TODO: change this??
-                    break;
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_GAMEUPDATE)) //this means the attack is over
-                {
-                    App.Current.Dispatcher.Invoke((Action)delegate {
-                        _gameInformation.UpdateGameInformationFromMessage(responseData);
-                        Thread.Sleep(Constants.DELAY_FASTUPDATE_MS);
-                        UpdateWindowFromGameInformation();
-                    });
-                    return;
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER)) //this means game is over
-                {
-                    GameOver(responseData);
-                }
-            }
-
-            //here we have to wait in the thread because there is an question open.
-            SpinWait.SpinUntil(() => this._anotherWindowInFocus == false);
-            App.Current.Dispatcher.Invoke((Action)delegate {
-                UpdateGameInformation();
-            });
-        }
-
         private void QuestionWindow_Closed(object? sender, EventArgs e)
         {
             //we return from the question -> picking regions three times!
             this._anotherWindowInFocus = false;
+        }
+
+        //here the game starts - wait for an assignment of ID
+        private void WaitForGameStart()
+        {
+            Byte[] data;
+            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            while (true) //wait for the ID assignment
+            {
+                bytes = _stream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                //Debug.WriteLine("Received: " + responseData);
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    ClientCommon.HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_ASSIGN))
+                {
+                    char lastChar = responseData[responseData.Length - 1];
+                    this._clientID = Int32.Parse(lastChar.ToString());
+                    this.playerIDLabel.Content = String.Format(Constants.PLAYER_ID_LABEL, lastChar);
+                    break;
+                }
+            }
+
+            //now we got the ids, so the server needs to set the right information
+            UpdateGameInformation();
+        }
+
+        private void UpdateGameInformation()
+        {
+            Byte[] data;
+            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            while (true) //wait for new information about the game
+            {
+                bytes = _stream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                //Debug.WriteLine("Received: " + responseData);
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    ClientCommon.HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEUPDATE)) //update the game data
+                {
+                    _gameInformation.UpdateGameInformationFromMessage(responseData);
+                    Thread.Sleep(Constants.DELAY_FASTUPDATE_MS);
+                    UpdateWindowFromGameInformation();
+                    break;
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER))
+                {
+                    GameOver(responseData);
+                }
+            }
         }
 
         private void FirstRound()
@@ -430,44 +285,112 @@ namespace client
             App.Current.Dispatcher.Invoke((Action)delegate { UpdateGameInformation(); });
         }
 
-        //here the game starts - wait for an assignment of ID
-        private void WaitForGameStart()
+
+        private void PickingSecondRound()
         {
             Byte[] data;
             data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
             String responseData = String.Empty;
             Int32 bytes;
 
-            while(true) //wait for the ID assignment
+            while (true)
             {
                 bytes = _stream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                //Debug.WriteLine("Received: " + responseData);
+                //Debug.WriteLine("Received 2ndRnd: " + responseData);
+
                 if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
                 {
                     ClientCommon.HandleEnemyDisconnect();
                 }
-                else if (responseData.StartsWith(Constants.PREFIX_ASSIGN))
+                else if (responseData.StartsWith(Constants.PREFIX_PICKREGION))
                 {
-                    char lastChar = responseData[responseData.Length - 1];
-                    this._clientID = Int32.Parse(lastChar.ToString());
-                    this.playerIDLabel.Content = String.Format(Constants.PLAYER_ID_LABEL, lastChar);
+                    string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
+                    App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.PLAYER_PICK_REGION, splitData[1]); });
+
+                    //if we are supposed to be picking!
+                    if (_clientID == Int32.Parse(splitData[1]))
+                    {
+                        _pickingRegion = true;
+                    }
+                    else
+                    {
+                        SendPickedRegion(null);
+                    }
                     break;
                 }
             }
 
-            //now we got the ids, so the server needs to set the right information
-            UpdateGameInformation();
+            //after 5s lets see if it picked something, if not, then pick random
+            Thread.Sleep(Constants.DELAY_CLIENT_PICK);
+
+            App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = Constants.SERVER_UPDATE; });
+            if (_pickingRegion)
+            {
+                _pickingRegion = false;
+                Constants.Region? reg;
+                if (_gameStatus == Constants.GameStatus.SecondRound_FirstVersion)
+                {
+                    reg = Constants.PickRandomEnemyRegion(_gameInformation.Regions, _clientID - 1, true);
+                }
+                else
+                {
+                    reg = Constants.PickRandomEnemyRegion(_gameInformation.Regions, _clientID - 1, false);
+                }
+                //Debug.WriteLine(reg);
+                SendPickedRegion(reg);
+            }
         }
 
-        private void UpdateGameInformation()
+        private void WaitForAttack()
         {
             Byte[] data;
             data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
             String responseData = String.Empty;
             Int32 bytes;
 
-            while (true) //wait for new information about the game
+            while (true)
+            {
+                bytes = _stream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    ClientCommon.HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_ATTACK))
+                {
+                    string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
+                    if(Enum.TryParse(splitData[1], out Constants.Region reg)) //this should happen every time
+                    {
+                        App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.REGION_UNDER_ATTACK, splitData[1]); });
+                        App.Current.Dispatcher.Invoke((Action)delegate { this._gameBoardPaths[(int)reg].Fill = BrushesAndColors.ATTACKED_REGION_BRUSH; });
+                    }
+                    break;
+                }
+
+            }
+        }
+
+        private void SecondRound()
+        {
+            //firstly wait for the pick...
+            PickingSecondRound();
+
+            WaitForAttack();
+
+            Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
+
+            SecondRoundWaitForQuestion();
+        }
+
+        private void SecondRoundWaitForQuestion()
+        {
+            Byte[] data;
+            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            while (true)
             {
                 bytes = _stream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
@@ -476,18 +399,99 @@ namespace client
                 {
                     ClientCommon.HandleEnemyDisconnect();
                 }
-                else if (responseData.StartsWith(Constants.PREFIX_GAMEUPDATE)) //update the game data
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //handle question
                 {
-                    _gameInformation.UpdateGameInformationFromMessage(responseData);
-                    Thread.Sleep(Constants.DELAY_FASTUPDATE_MS);
-                    UpdateWindowFromGameInformation();
+                    this._anotherWindowInFocus = true;
+
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this._questionWindow = new QuestionABCDWindow(responseData, _stream, _clientID - 1);
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this._questionWindow.Show();
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this._questionWindow.Closed += QuestionWindow_Closed;
+                        //when it closes, it means that we/oponnent are about to pick a region
+                    });
                     break;
                 }
-                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER))
+            }
+
+            SecondRoundAfterFirstQuestion();
+        }
+
+        private void SecondRoundAfterFirstQuestion()
+        {
+            Byte[] data;
+            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
+            String responseData = String.Empty;
+            Int32 bytes;
+
+            //here we have to wait in the thread because there is an question open.
+            SpinWait.SpinUntil(() => this._anotherWindowInFocus == false);
+
+            //here the client can receive 3 types of answers!!
+            while (true)
+            {
+                bytes = _stream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                //Debug.WriteLine("Received: " + responseData);
+                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
+                {
+                    ClientCommon.HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONABCD)) //this means that some base was damaged...
+                {
+                    this._anotherWindowInFocus = true;
+
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this._questionWindow = new QuestionABCDWindow(responseData, _stream, _clientID - 1);
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this._questionWindow.Show();
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this._questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                    });
+
+                    SecondRoundAfterFirstQuestion();
+                    return;
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_QUESTIONNUMBER)) //this means it was a tie
+                {
+                    this._anotherWindowInFocus = true;
+
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this._questionWindow = new QuestionNumericWindow(responseData, _stream, _clientID - 1);
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this._questionWindow.Show();
+                    });
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        this._questionWindow.Closed += QuestionWindow_Closed; //when it closes, it means that we/oponnent are about to pick a region
+                    }); //TODO: change this??
+                    break;
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEUPDATE)) //this means the attack is over
+                {
+                    App.Current.Dispatcher.Invoke((Action)delegate {
+                        _gameInformation.UpdateGameInformationFromMessage(responseData);
+                        Thread.Sleep(Constants.DELAY_FASTUPDATE_MS);
+                        UpdateWindowFromGameInformation();
+                    });
+                    return;
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_GAMEOVER)) //this means game is over
                 {
                     GameOver(responseData);
                 }
             }
+
+            //here we have to wait in the thread because there is an question open.
+            SpinWait.SpinUntil(() => this._anotherWindowInFocus == false);
+            App.Current.Dispatcher.Invoke((Action)delegate {
+                UpdateGameInformation();
+            });
         }
 
         private void GameOver(string data)
