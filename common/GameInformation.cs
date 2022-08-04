@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Commons
 {
+    /// <summary>
+    /// This class contains all needed game information. Both server and client share this state and update it regularly.
+    /// </summary>
     public class GameInformation
     {
         public int[] Points { get; private set; }
@@ -43,42 +46,74 @@ namespace Commons
             this.HighValueRegions = new List<Constants.Region>();
         }
 
-        public void setBase(int playerID, Constants.Region region)
+        /// <summary>
+        /// Method modyfing the Bases property. Sets the player's base region.
+        /// </summary>
+        /// <param name="playerID">Player identifier.</param>
+        /// <param name="region">Region to be set as the base.</param>
+        public void SetBase(int playerID, Constants.Region region)
         {
             this.Bases[playerID - 1] = region;
             if (!this.Regions[playerID - 1].Contains(region)) this.Regions[playerID - 1].Add(region);
         }
 
-        public void addPoints(int playerID, int pts)
+        /// <summary>
+        /// Method adding "pts" to the player's Points property.
+        /// </summary>
+        /// <param name="playerID">Player identifier.</param>
+        /// <param name="pts">Number of points.</param>
+        public void AddPoints(int playerID, int pts)
         {
             this.Points[playerID - 1] += pts;
         }
 
-        public void addRegion(int playerID, Constants.Region region)
+        /// <summary>
+        /// Method adding the region to the player's regions.
+        /// </summary>
+        /// <param name="playerID">Player identifier.</param>
+        /// <param name="region">Region to be added.</param>
+        public void AddRegion(int playerID, Constants.Region region)
         {
             if (!this.Regions[playerID - 1].Contains(region)) this.Regions[playerID - 1].Add(region);
         }
 
-        public void addHighValueRegion(Constants.Region region)
+        /// <summary>
+        /// Method appending the region to the high value regions.
+        /// </summary>
+        /// <param name="region">Region to be added.</param>
+        public void AddHighValueRegion(Constants.Region region)
         {
             if (!this.HighValueRegions.Contains(region)) this.HighValueRegions.Add(region);
         }
 
-        public void removeRegion(int playerID, Constants.Region region)
+        /// <summary>
+        /// Method removing the region from player's regions.
+        /// </summary>
+        /// <param name="playerID">Player identifier.</param>
+        /// <param name="region">Region to be removed.</param>
+        public void RemoveRegion(int playerID, Constants.Region region)
         {
             if (this.Regions[playerID - 1].Contains(region)) this.Regions[playerID - 1].Remove(region);
         }
 
-        public void decreaseBaseHealth(int playerID)
+        /// <summary>
+        /// Method decreasing player's base health by one.
+        /// </summary>
+        /// <param name="playerID">Player identifier.</param>
+        public void DecreaseBaseHealth(int playerID)
         {
             this.BaseHealths[playerID - 1] -= 1;
         }
 
+        /// <summary>
+        /// Method encoding the properties of this class returning a string with this data.
+        /// </summary>
+        /// <returns>Encoded class information in a specified format.</returns>
         public string EncodeInformationToString()
         {
             StringBuilder sb = new();
             sb.Append(Constants.PREFIX_GAMEUPDATE);
-            //it could look something like this:
+
             //gameupdate_P1pts_P2pts_P1Health_P2Health_P1Base_P2Base_P1Regions_P2Regions_HighValueRegions
             //gameupdate_ 1500 _ 1700 _ 3 _ 2 _ 13 _ 9 _ 13,4,5, _ 9,6,7, _ 6,4,
 
@@ -123,10 +158,12 @@ namespace Commons
             return sb.ToString();
         }
 
-        //method used by client to update their information
+        /// <summary>
+        /// Method used by client/server to update the game information from the encoded string.
+        /// </summary>
+        /// <param name="message">Information to be decoded.</param>
         public void UpdateGameInformationFromMessage(string message)
         {
-            //it could look something like this:
             //gameupdate_P1pts_P2pts_P1Health_P2Health_P1Base_P2Base_P1Regions_P2Regions_HighValueRegions
             //gameupdate_ 1500 _ 1700 _ 3 _ 2 _ 13 _ 9 _ 13,4,5, _ 9,6,7, _ 6,4,
             string[] data = message.Split(Constants.GLOBAL_DELIMITER);

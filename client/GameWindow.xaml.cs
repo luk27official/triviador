@@ -173,7 +173,7 @@ namespace client
             this._gameStatus = Constants.GameStatus.SecondRound_SecondVersion;
             for (int i = 0; i < Constants.SECOND_ROUND_SECOND_VERSION_QUESTIONS_COUNT; i++)
             {
-                App.Current.Dispatcher.Invoke((Action)delegate { this.currentRndLabel.Content = String.Format(Constants.CURRENT_ROUND, this._attackRoundNumber++ });
+                App.Current.Dispatcher.Invoke((Action)delegate { this.currentRndLabel.Content = String.Format(Constants.CURRENT_ROUND, this._attackRoundNumber++); });
                 SecondRound();
             }
 

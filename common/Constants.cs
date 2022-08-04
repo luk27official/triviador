@@ -5,8 +5,14 @@ using System.Linq;
 
 namespace Commons
 {
+	/// <summary>
+	/// This static class contains all constants used in the project, including regions, messages sent to the server, times and some settings.
+	/// </summary>
 	public static class Constants
 	{
+		/// <summary>
+		/// This enum defines all regions of the Czech Republic.
+		/// </summary>
 		public enum Region
 		{
 			CZJC,
@@ -28,28 +34,37 @@ namespace Commons
 			CZVY
 		};
 
+		/// <summary>
+		/// This multidimensional array defines neighbors of the regions in the order as the enum was specified.
+		/// </summary>
 		public static Region[][] NEIGHBORING_REGIONS => new Region[14][] {
 
-		new Region[] { Region.CZPL, Region.CZST, Region.CZVY, Region.CZJM},
-		new Region[] { Region.CZJC, Region.CZVY, Region.CZPA, Region.CZOL, Region.CZZL },
-		new Region[] { Region.CZPL, Region.CZUS },
-		new Region[] { Region.CZPA, Region.CZST, Region.CZLI },
+			new Region[] { Region.CZPL, Region.CZST, Region.CZVY, Region.CZJM},
+			new Region[] { Region.CZJC, Region.CZVY, Region.CZPA, Region.CZOL, Region.CZZL },
+			new Region[] { Region.CZPL, Region.CZUS },
+			new Region[] { Region.CZPA, Region.CZST, Region.CZLI },
 
-		new Region[] { Region.CZST, Region.CZUS, Region.CZKR },
-		new Region[] { Region.CZOL, Region.CZZL },
-		new Region[] { Region.CZPA, Region.CZJM, Region.CZZL, Region.CZMO },
-		new Region[] { Region.CZKR, Region.CZST, Region.CZVY, Region.CZJM, Region.CZOL},
+			new Region[] { Region.CZST, Region.CZUS, Region.CZKR },
+			new Region[] { Region.CZOL, Region.CZZL },
+			new Region[] { Region.CZPA, Region.CZJM, Region.CZZL, Region.CZMO },
+			new Region[] { Region.CZKR, Region.CZST, Region.CZVY, Region.CZJM, Region.CZOL},
 
-		new Region[] { Region.CZMO, Region.CZOL, Region.CZJM },
-		new Region[] { Region.CZJC, Region.CZST, Region.CZUS, Region.CZKA },
-		new Region[] { Region.CZST },
-		new Region[] { Region.CZUS, Region.CZLI, Region.CZPR, Region.CZKR, Region.CZPA, Region.CZVY, Region.CZJC, Region.CZPL },
+			new Region[] { Region.CZMO, Region.CZOL, Region.CZJM },
+			new Region[] { Region.CZJC, Region.CZST, Region.CZUS, Region.CZKA },
+			new Region[] { Region.CZST },
+			new Region[] { Region.CZUS, Region.CZLI, Region.CZPR, Region.CZKR, Region.CZPA, Region.CZVY, Region.CZJC, Region.CZPL },
 
-		new Region[] { Region.CZKA, Region.CZLI, Region.CZST, Region.CZPL },
-		new Region[] { Region.CZST, Region.CZPA, Region.CZJC, Region.CZJM },
+			new Region[] { Region.CZKA, Region.CZLI, Region.CZST, Region.CZPL },
+			new Region[] { Region.CZST, Region.CZPA, Region.CZJC, Region.CZJM },
 
-	};
+		};
 
+		/// <summary>
+		/// Method returning a boolean containing information if a region neigbors any of the regions provided in a list.
+		/// </summary>
+		/// <param name="region">One region.</param>
+		/// <param name="possibleNeighbors">A list of possible neighbors.</param>
+		/// <returns>True, if at least one of those regions neighbor.</returns>
 		public static bool DoRegionsNeighbor(Constants.Region region, List<Constants.Region> possibleNeighbors)
 		{
 			foreach (Constants.Region r in possibleNeighbors)
@@ -62,6 +77,13 @@ namespace Commons
 			return false;
 		}
 
+		/// <summary>
+		/// Method called when the user does not pick a region in the second stage of the game.
+		/// </summary>
+		/// <param name="all">Array containing a list of regions for each player.</param>
+		/// <param name="clientID">Current client identifier.</param>
+		/// <param name="neighboring">True if the picked region should neighbor at least one of the player's regions.</param>
+		/// <returns>A random enemy region by the given rules.</returns>
 		public static Region? PickRandomEnemyRegion(List<Region>[] all, int clientID, bool neighboring)
 		{
 			var allRegions = Enum.GetValues(typeof(Constants.Region)).Cast<Constants.Region>();
@@ -90,6 +112,12 @@ namespace Commons
 			return shuffled.ElementAt(random);
 		}
 
+		/// <summary>
+		/// Method called when the user does not pick a region in the first stage of the game.
+		/// </summary>
+		/// <param name="all">Array containing a list of regions for each player.</param>
+		/// <param name="clientID">Current client identifier.</param>
+		/// <returns>A random free region by the given rules. Null if there is no valid region left.</returns>
 		public static Region? PickRandomFreeNeighboringRegion(List<Region>[] all, int clientID)
 		{
 			List<Region> populatedRegions = new List<Region>();
@@ -122,6 +150,9 @@ namespace Commons
 			return shuffled.ElementAt(random);
 		}
 
+		/// <summary>
+		/// Enum defining the current state of the game.
+		/// </summary>
 		public enum GameStatus
 		{
 			Loading,
@@ -131,6 +162,9 @@ namespace Commons
 			GameOver
 		}
 
+		/// <summary>
+		/// A custom exception thrown when one (or both) of the users disconnect.
+		/// </summary>
 		public class DisconnectException : Exception
 		{
 			public DisconnectException()

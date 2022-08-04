@@ -10,32 +10,38 @@ using Commons;
 
 namespace server
 {
+	/// <summary>
+	/// This class contains all of the server logic.
+	/// </summary>
 	internal class Server
 	{
 		bool _running;
 		TcpListener _server;
 		TcpClient[] _acceptedClients;
-		int _acceptedClientsIndex; //holds the number of already connected people
+		int _acceptedClientsIndex;					//holds the number of already connected people
 		GameInformation _gameInformation;
-		string[] _questionsABCDWithAnswers;
-		string[] _questionsNumericWithAnswers;
-		bool _playerDisconnected;
+		string[] _questionsABCDWithAnswers;			//holds all of the questions with options
+		string[] _questionsNumericWithAnswers;		//holds all of the numeric questions
+		bool _playerDisconnected;					//did at least one player disconnect?
 
 		public Server()
 		{
 			SetupServer();
 		}
 
+		/// <summary>
+		/// Method called for initializing the server.
+		/// </summary>
 		public void SetupServer()
         {
 			try
             {
                 using StreamReader reader = new(Constants.CONFIG_FILENAME);
 
-                reader.ReadLine(); //we do not need the first one, its there just for reference
-                string? line2 = reader.ReadLine(); //we do not need the first one
-                                                  //from the second one parse ip and port
-				if(line2 != null)
+                reader.ReadLine();	//we do not need the first line, its there just for reference
+                string? line2 = reader.ReadLine(); //from the second line parse ip and port
+
+				if (line2 != null)
                 {
 					string[] splitLine2 = line2.Split(Constants.GLOBAL_DELIMITER);
 					IPAddress localAddr = IPAddress.Parse(splitLine2[0]);
@@ -57,6 +63,9 @@ namespace server
 			}
 		}
 
+		/// <summary>
+		/// Method which resets the server information, so new players can connect.
+		/// </summary>
 		public void ResetInformation()
         {
 			_acceptedClients = new TcpClient[Constants.MAX_PLAYERS];
@@ -66,6 +75,10 @@ namespace server
 			_playerDisconnected = false;
 		}
 
+		/// <summary>
+		/// Starts the server. Reads the questions from specified files and handles client connections.
+		/// </summary>
+		/// <exception cref="Constants.DisconnectException">Exception thrown when some of the players disconnect.</exception>
 		public void Start()
 		{
 			ResetInformation();
@@ -100,9 +113,13 @@ namespace server
             }
 		}
 
+		/// <summary>
+		/// Handles client connection. If there is a free spot for the player, the client is assigned an ID and receives an according message.
+		/// </summary>
+		/// <param name="currentClient">TcpClient used to communicate with the client.</param>
 		private void SaveClient(TcpClient currentClient)
 		{
-			if (_acceptedClientsIndex > Constants.MAX_PLAYERS - 1) //a third user tries to connect, do not do anything
+			if (_acceptedClientsIndex > Constants.MAX_PLAYERS - 1) //more users try to connect later in game, do not do anything
 			{
 				return;
 			}
@@ -127,12 +144,13 @@ namespace server
 				Interlocked.Add(ref _acceptedClientsIndex, 1);
 			}
 
-			//otherwise we have already one player connected, so lets
-			//inform both users they have been connected
 			if (_acceptedClientsIndex == Constants.MAX_PLAYERS)
 				InformPlayersAboutConnection();
 		}
 
+		/// <summary>
+		/// Method sending all players info about the start of the game.
+		/// </summary>
 		private void InformPlayersAboutConnection() {
 
 			SendMessageToAllClients(Constants.P2CONNECTED);
@@ -141,9 +159,12 @@ namespace server
 
 			AssignPlayerIDs();
 
-			GameStart();
+			Play();
 		}
 
+		/// <summary>
+		/// Method assigning ID numbers to all clients.
+		/// </summary>
 		private void AssignPlayerIDs()
         {
 			int i = 0;
@@ -170,6 +191,9 @@ namespace server
 			}
 		}
 
+		/// <summary>
+		/// Method assigning base regions to the players.
+		/// </summary>
 		private void AssignBaseRegions()
         {
 			//firstly, we have to pick a random region and assign it to the players
@@ -185,12 +209,15 @@ namespace server
 				player2Base = list[random.Next(list.Count)]; //pick another one
 			}
 
-			_gameInformation.setBase(1, player1Base);
-			_gameInformation.setBase(2, player2Base);
+			_gameInformation.SetBase(1, player1Base);
+			_gameInformation.SetBase(2, player2Base);
 
 			SendGameInfoAndCheckDisconnect();
 		}
 
+		/// <summary>
+		/// Method which checks if player/s disconnected and according to that sends a message to the clients.
+		/// </summary>
 		private void SendGameInfoAndCheckDisconnect()
         {
 			//basically just check if someone disconnected... if yes, inform the client
@@ -201,7 +228,10 @@ namespace server
 			else SendMessageToAllClients(_gameInformation.EncodeInformationToString());
         }
 
-		private void GameStart()
+		/// <summary>
+		/// Method which controls the game. All rounds are defined here.
+		/// </summary>
+		private void Play()
         {
 			AssignBaseRegions();
 			
@@ -227,13 +257,16 @@ namespace server
 				SecondRound(1, 2, false);
 			}
 			
-			//noone has won till now -> decide the winner based on points
+			//no one has won till now -> decide the winner based on points
 			DecideWinnerBasedOnPoints();
 		}
 
+		/// <summary>
+		/// Method which controls the first round, picks question and sends it to clients and then waits for answers.
+		/// </summary>
 		private void FirstRound()
         {
-			string question = PickRandomNumberQuestion();
+			string question = PickRandomNumericQuestion();
 
 			SendMessageToAllClients(question);
 
@@ -271,9 +304,21 @@ namespace server
 			DecideNumberQuestionWinnerAndInform(answers, times, question, FirstRoundWin, null, null, null);
 		}
 
+		/// <summary>
+		/// Method which sends the correct answers and information to the clients. Then sends three instructions to pick a region.
+		/// </summary>
+		/// <param name="answers">Player answers.</param>
+		/// <param name="times">Player answer times.</param>
+		/// <param name="rightAnswer">Right answer to the question.</param>
+		/// <param name="winnerID">Winner client identifier.</param>
+		/// <param name="loserID">Loser client identifier.</param>
+		/// <param name="reg">Set to null.</param>
+		/// <param name="x">Set to null.</param>
+		/// <param name="y">Set to null.</param>
 		private void FirstRoundWin(int[] answers, int[] times, int rightAnswer, int winnerID, int loserID, Constants.Region? reg, int? x, int? y)
         {
-			//we dont need the region, x and y here
+			//we dont need the reg, x and y here, its there just for compatibility with a delegate
+
 			//send the players the info about their answers
 			string message = Constants.PREFIX_FINALANSWERS + answers[0] + Constants.GLOBAL_DELIMITER + answers[1] + Constants.GLOBAL_DELIMITER + 
 				times[0] + Constants.GLOBAL_DELIMITER + times[1] + Constants.GLOBAL_DELIMITER + rightAnswer + Constants.GLOBAL_DELIMITER + winnerID;
@@ -286,6 +331,10 @@ namespace server
 			SendFirstRoundPickAnnouncement(loserID);
 		}
 
+		/// <summary>
+		/// Method which sends the client an instruction to pick a region on the map.
+		/// </summary>
+		/// <param name="clientID">Client identifier.</param>
 		private void SendFirstRoundPickAnnouncement(int clientID)
         {
 			//let the winner choose twice and the loser once
@@ -319,6 +368,10 @@ namespace server
 			Thread.Sleep(Constants.DELAY_WAITFORCLIENTUPDATE);
 		}
 
+		/// <summary>
+		/// Method updating the server's game information based on the pick from the player.
+		/// </summary>
+		/// <param name="data">Client instruction with data about the picked region.</param>
 		private void UpdateGameInformationBasedOnPickFirstRound(string[] data)
         {
 			//Received: picked_1_CZST
@@ -330,8 +383,8 @@ namespace server
 					int player = Int32.Parse(splitData[1]);
 					if (Enum.TryParse(splitData[2], out Constants.Region reg))
 					{
-						this._gameInformation.addPoints(player, Constants.POINTS_BASIC_REGION);
-						this._gameInformation.addRegion(player, reg);
+						this._gameInformation.AddPoints(player, Constants.POINTS_BASIC_REGION);
+						this._gameInformation.AddRegion(player, reg);
 						SendGameInfoAndCheckDisconnect();
 						break;
 					}
@@ -339,6 +392,11 @@ namespace server
 			}
 		}
 
+		/// <summary>
+		/// A method which sends a message to all connected clients.
+		/// </summary>
+		/// <param name="message">Message to be sent.</param>
+		/// <exception cref="Constants.DisconnectException">Exception thrown when some of the players disconnect.</exception>
 		private void SendMessageToAllClients(string message)
         {
 			byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
@@ -376,9 +434,14 @@ namespace server
             }
 		}
 
-		private Constants.Region PicksSecondRound(int clientID)
+		/// <summary>
+		/// A method which sends an instruction for the attacker to pick a region to attack.
+		/// </summary>
+		/// <param name="attackerID">Attacker client identifier.</param>
+		/// <returns>An attacked region.</returns>
+		private Constants.Region PicksSecondRound(int attackerID)
 		{
-			string message = Constants.PREFIX_PICKREGION + clientID.ToString();
+			string message = Constants.PREFIX_PICKREGION + attackerID.ToString();
 			SendMessageToAllClients(message);
 
 			//wait for the picks
@@ -407,13 +470,19 @@ namespace server
 			}
 
 			//now we received the info that the player picked some region to attack, lets store it
-			Constants.Region attackedRegion = GetPickedRegionRoundTwo(receivedData);
+			Constants.Region attackedRegion = (Constants.Region) SecondRoundGetPickedRegion(receivedData);
 			//the return value should be never null!
 			string attackMessage = Constants.PREFIX_ATTACK + attackedRegion.ToString();
 			SendMessageToAllClients(attackMessage);
 			return attackedRegion;
 		}
 
+		/// <summary>
+		/// Method which controls the second round, sends a pick request, then sends question and waits for answers.
+		/// </summary>
+		/// <param name="attackerID">Attacker client identifier.</param>
+		/// <param name="otherID">Other client identifier.</param>
+		/// <param name="repeatedBaseAttack">True, if it is a repeated attack (first one succeeded).</param>
 		private void SecondRound(int attackerID, int otherID, bool repeatedBaseAttack)
 		{
 			Constants.Region reg;
@@ -426,13 +495,12 @@ namespace server
 				reg = PicksSecondRound(attackerID);
 			}
 
-			//wait 3s and then send the question
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 			string question = PickRandomABCDQuestion();
 			SendMessageToAllClients(question);
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
-			//we have sent the question. Now we have to wait to register all answers...
+
 			string responseData;
 			Int32 bytes;
 			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
@@ -462,6 +530,15 @@ namespace server
 			DecideSecondRoundWinnerFirstQuestion(answers, question, attackerID, otherID, reg);
 		}
 
+		/// <summary>
+		/// Method which decides the winner of the question with options in the second round.
+		/// Sends the correct answer, player information and then the continuation of the game.
+		/// </summary>
+		/// <param name="answers">Player answers.</param>
+		/// <param name="question">Current question with answer.</param>
+		/// <param name="attackerID">Attacker client identifier.</param>
+		/// <param name="defenderID">Defender client identifier.</param>
+		/// <param name="attackedRegion">Region which is being attacked.</param>
 		private void DecideSecondRoundWinnerFirstQuestion(string[] answers, string question, int attackerID, int defenderID, Constants.Region attackedRegion)
 		{
 			//finalanswers_correctANS_P1ANS_P2ANS
@@ -472,13 +549,9 @@ namespace server
 
 			SendMessageToAllClients(Constants.PREFIX_FINALANSWERS + correct + Constants.GLOBAL_DELIMITER + p1Answer + Constants.GLOBAL_DELIMITER + p2Answer);
 
-			//we've just sent the information about the correct answers...
-			//we have to calculate the actual winner
-
 			Thread.Sleep(Constants.DELAY_SHOWANSWERS);
 
-
-			//here the client can receive 3 types of answers!!
+			//here the client can receive more types of answers!!
 			//1) end game
 			//2) game info update
 			//3) new question (num/ABCD)
@@ -499,20 +572,23 @@ namespace server
 			}
 			else
 			{
-				//no one answered correctly
-				//do nothing lol
 				SecondRoundNoOneAnsweredCorrectly();
 			}
 		}
 
+		/// <summary>
+		/// This method handles the win of attacking player in the second round. 
+		/// If the player attacked other player's base, it sends a new question or ends the game.
+		/// </summary>
+		/// <param name="attackerID">Attacker client identifier.</param>
+		/// <param name="defenderID">Defender client identifier.</param>
+		/// <param name="attackedRegion">Region which is being attacked.</param>
 		private void SecondRoundAttackerWin(int attackerID, int defenderID, Constants.Region attackedRegion)
 		{
 			//only the attacker answered correctly
-			//either way change the points + owner of the region or subtract 1HP from the base
-			//and dont forget to add it to the high value regions
 			if (attackedRegion == this._gameInformation.Bases[defenderID - 1])
 			{
-				this._gameInformation.decreaseBaseHealth(defenderID);
+				this._gameInformation.DecreaseBaseHealth(defenderID);
 				if (this._gameInformation.BaseHealths[defenderID - 1] == 0)
 				{
 					Thread.Sleep(Constants.DELAY_ENDGAME);
@@ -529,40 +605,53 @@ namespace server
 			{
 				if (this._gameInformation.HighValueRegions.Contains(attackedRegion))
 				{
-					this._gameInformation.addPoints(defenderID, -Constants.POINTS_HIGH_VALUE_REGION);
+					this._gameInformation.AddPoints(defenderID, -Constants.POINTS_HIGH_VALUE_REGION);
 				}
 				else
 				{
-					this._gameInformation.addPoints(defenderID, -Constants.POINTS_BASIC_REGION);
+					this._gameInformation.AddPoints(defenderID, -Constants.POINTS_BASIC_REGION);
 				}
-				this._gameInformation.addPoints(attackerID, Constants.POINTS_HIGH_VALUE_REGION);
-				this._gameInformation.addRegion(attackerID, attackedRegion);
-				this._gameInformation.removeRegion(defenderID, attackedRegion);
-				this._gameInformation.addHighValueRegion(attackedRegion);
+				this._gameInformation.AddPoints(attackerID, Constants.POINTS_HIGH_VALUE_REGION);
+				this._gameInformation.AddRegion(attackerID, attackedRegion);
+				this._gameInformation.RemoveRegion(defenderID, attackedRegion);
+				this._gameInformation.AddHighValueRegion(attackedRegion);
 				SendGameInfoAndCheckDisconnect();
 			}
 		}
 
+		/// <summary>
+		/// Method handling win of the defender in the second round.
+		/// </summary>
+		/// <param name="defenderID">Defender client identifier.</param>
 		private void SecondRoundDefenderWin(int defenderID)
 		{
-			//defender answered ok
-			this._gameInformation.addPoints(defenderID, Constants.POINTS_DEFENDER_WIN);
+			this._gameInformation.AddPoints(defenderID, Constants.POINTS_DEFENDER_WIN);
 			SendGameInfoAndCheckDisconnect();
 		}
 
+		/// <summary>
+		/// Method handling wrong answersin the second round.
+		/// </summary>
 		private void SecondRoundNoOneAnsweredCorrectly()
 		{
 			SendGameInfoAndCheckDisconnect();
 		}
 
+		/// <summary>
+		/// Method called when the question with options had a winning tie.
+		/// A new numeric question is being sent to the players and handled properly.
+		/// </summary>
+		/// <param name="attackerID">Attacker client identifier.</param>
+		/// <param name="defenderID">Defender client identifier.</param>
+		/// <param name="attackedRegion">Region which is being attacked.</param>
 		private void SecondRoundAnotherQuestion(int attackerID, int defenderID, Constants.Region attackedRegion)
 		{
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-			string question = PickRandomNumberQuestion();
+			string question = PickRandomNumericQuestion();
 			SendMessageToAllClients(question);
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
-			//we have sent the question. Now we have to wait to register all answers...
+
 			string responseData;
 			Int32 bytes;
 			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
@@ -592,11 +681,20 @@ namespace server
 				}
 			}
 
-			//now it is time to compare the answers...
-			//first compare by the actual answers
 			DecideNumberQuestionWinnerAndInform(answers, times, question, SecondRoundWin, attackedRegion, defenderID, attackerID);
 		}
 
+		/// <summary>
+		/// Method which sends the correct answers and information to the clients. Then sends three instructions to pick a region.
+		/// </summary>
+		/// <param name="answers">Player answers.</param>
+		/// <param name="times">Player answer times.</param>
+		/// <param name="rightAnswer">Right answer to the question.</param>
+		/// <param name="winnerID">Winner client identifier.</param>
+		/// <param name="loserID">Loser client identifier.</param>
+		/// <param name="attackedRegion">Attacked region.</param>
+		/// <param name="defenderID">Defender client identifier.</param>
+		/// <param name="attackerID">Attacker client identifier.</param>
 		private void SecondRoundWin(int[] answers, int[] times, int rightAnswer, int winnerID, int loserID, Constants.Region? attackedRegion, int? defenderID, int? attackerID)
 		{
 			if (attackedRegion == null || defenderID == null || attackerID == null) return;
@@ -618,7 +716,12 @@ namespace server
 			}
 		}
 
-		private Constants.Region GetPickedRegionRoundTwo(string[] data)
+		/// <summary>
+		/// Method parsing the picked region in the second round from the attacker.
+		/// </summary>
+		/// <param name="data">Array with data from the clients.</param>
+		/// <returns>Region chosen by a client to be attacked.</returns>
+		private Constants.Region? SecondRoundGetPickedRegion(string[] data)
 		{
 			//Received: picked_1_CZST
 			foreach (string current in data)
@@ -633,9 +736,19 @@ namespace server
 				}
 			}
 
-			return Constants.Region.CZZL; //WILL NOT HAPPEN!
+			return null; //WILL NOT HAPPEN!
 		}
 
+		/// <summary>
+		/// Method which decides who the winner of the numeric question is and calls the responsible "decideWin" method.
+		/// </summary>
+		/// <param name="answers">Player answers.</param>
+		/// <param name="times">Player answer times.</param>
+		/// <param name="question">Question with the correct answer.</param>
+		/// <param name="decideWin">Delegate to be called by this method.</param>
+		/// <param name="region">Attacked region, if available.</param>
+		/// <param name="defenderID">Defender client identifier, if available.</param>
+		/// <param name="attackerID">Attacker client identifier, if available.</param>
 		private void DecideNumberQuestionWinnerAndInform(int[] answers, int[] times, string question,
 			Action<int[], int[], int, int, int, Constants.Region?, int?, int?> decideWin,
 			Constants.Region? region, int? defenderID, int? attackerID)
@@ -644,8 +757,8 @@ namespace server
 
 			if (Math.Abs(answers[0] - rightAnswer) < Math.Abs(answers[1] - rightAnswer))
 			{
-				decideWin(answers, times, rightAnswer, 1, 2, region, defenderID, attackerID);
 				//then this means that the player 1 was closer, thus the winner
+				decideWin(answers, times, rightAnswer, 1, 2, region, defenderID, attackerID);
 			}
 			else if (Math.Abs(answers[0] - rightAnswer) == Math.Abs(answers[1] - rightAnswer))
 			{
@@ -659,12 +772,15 @@ namespace server
 					decideWin(answers, times, rightAnswer, 2, 1, region, defenderID, attackerID);
 				}
 			}
-			else //second player was closer
+			else
 			{
 				decideWin(answers, times, rightAnswer, 2, 1, region, defenderID, attackerID);
 			}
 		}
 
+		/// <summary>
+		/// This method decides the winner of the game based on points, because no base was destroyed.
+		/// </summary>
 		private void DecideWinnerBasedOnPoints()
 		{
 			//this also applies just to two players
@@ -692,11 +808,20 @@ namespace server
 			mydelegate.Invoke();
 		}
 
+		/// <summary>
+		/// Method returning game over message for the clients.
+		/// </summary>
+		/// <param name="winnerID">Game winner identifier.</param>
+		/// <returns>Game over message for the clients.</returns>
 		private string GameOverMessage(int winnerID)
         {
 			return Constants.PREFIX_GAMEOVER + winnerID;
 		}
 
+		/// <summary>
+		/// Picks a random question from the loaded questions.
+		/// </summary>
+		/// <returns>Random question with options.</returns>
 		private string PickRandomABCDQuestion()
         {
 			Random rnd = new();
@@ -704,13 +829,20 @@ namespace server
 			return Constants.PREFIX_QUESTIONABCD + _questionsABCDWithAnswers[r];
 		}
 
-		private string PickRandomNumberQuestion()
+		/// <summary>
+		/// Picks a random numeric question from the loaded questions.
+		/// </summary>
+		/// <returns>Random numeric question.</returns>
+		private string PickRandomNumericQuestion()
         {
 			Random rnd = new();
 			int r = rnd.Next(_questionsABCDWithAnswers.Length - 1);
 			return Constants.PREFIX_QUESTIONNUMBER + _questionsNumericWithAnswers[r];
 		}
 
+		/// <summary>
+		/// Method called to reset the server.
+		/// </summary>
 		public void Reset()
 		{
 			foreach (TcpClient client in _acceptedClients)
@@ -728,6 +860,9 @@ namespace server
 			ResetInformation();
 		}
 
+		/// <summary>
+		/// Method called to stop the server.
+		/// </summary>
 		public void Stop()
         {
 			foreach (TcpClient client in _acceptedClients)

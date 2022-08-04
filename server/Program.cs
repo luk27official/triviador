@@ -6,6 +6,9 @@ namespace server
 {
     static class Program
     {
+        /// <summary>
+        /// Static method to create a new instance of the server. Handles disconnect and other possible problems.
+        /// </summary>
         static void CreateServer()
         {
             Server s;
@@ -26,7 +29,10 @@ namespace server
             }
         }
 
-        static void Main(string[] args)
+        /// <summary>
+        /// Main entry point to the server.
+        /// </summary>
+        static void Main()
         {
             CreateServer();
         }
