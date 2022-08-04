@@ -1,6 +1,3 @@
-
-
-
 ## Triviador
 
 The goal of this repository was to create a very simple desktop remake of the game "Triviador" which is available only for smartphones.
@@ -12,11 +9,13 @@ Every client gets 1000 points and one of the regions assigned. This assigned reg
 
 The game consists of following stages:
 1. Region occupation
+   
 Players try to answer the numeric question as precisely as possible. In case the answers from all players are the same, the winner is decided based on their answer speeds.
 The winner selects two new free (if possible, neigboring) regions and occupies them. For each region the player gets 200 points. The round loser selects one region the same way.
 In total, 4 questions are answered in this stage.
 
 2. Fight
+   
 The map is split into 14 regions with respective owners based on the previous answers. The players attack each other. The current attacker may choose any neighboring enemy region to attack. Both players receive a trivia question with four possible answers.
 - If both players answer correctly, a new numeric question is sent to both of them. The winner is selected the same way as in the first round.
 - If the attacker is the only one to answer correctly, they get the region, 400 points and the region value is subtracted from the defender's points.
@@ -28,6 +27,7 @@ Attacking the enemy's base region is considered special. Players have to conside
 In total, there are 4 rounds, which means there are at least 8 attacks.
 
 3. Game over
+   
 The player which succesfully destroys all enemy bases wins. If there is no winner after all the attacks, the winner is based on total points. A tie may occur as well.
 
 <hr style="height: 5px; border: 0; box-shadow: inset 0 12px 12px -12px rgba(0, 0, 0, 0.5);"/>
