@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "server", "server\server.csp
 		{6DAF727E-2AFE-40A7-9FA6-C92FD629AB44} = {6DAF727E-2AFE-40A7-9FA6-C92FD629AB44}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "common", "common\common.csproj", "{6DAF727E-2AFE-40A7-9FA6-C92FD629AB44}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "common", "common\common.csproj", "{6DAF727E-2AFE-40A7-9FA6-C92FD629AB44}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

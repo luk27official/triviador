@@ -5,15 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:client"
         mc:Ignorable="d"
-        Title="QuestionNumericWindow" Height="495" Width="500">
+        ResizeMode="NoResize"
+        Title="Triviador: Numeric Question" Height="500" Width="500">
     <Grid>
-        <Label x:Name="questionLabel" Content="The question will appear here." HorizontalAlignment="Center" HorizontalContentAlignment="Center" Margin="0,10,0,0" VerticalAlignment="Top" FontSize="24" Height="129" Width="480" FontWeight="Bold"/>
+        <TextBlock x:Name="questionLabel" Text="The question will appear here." HorizontalAlignment="Center" Margin="0,10,0,0" VerticalAlignment="Top" FontSize="24" Height="169" Width="480" FontWeight="Bold" TextAlignment="Center" TextWrapping="WrapWithOverflow"/>
         <Label x:Name="timerLabel" Content="Time left: ??" HorizontalAlignment="Center" Margin="0,406,0,0" VerticalAlignment="Top" FontSize="24"/>
-        <Label x:Name="enterAnswerlbl" Content="Enter your answer:" HorizontalAlignment="Left" Margin="10,144,0,0" VerticalAlignment="Top" FontSize="24"/>
-        <TextBox x:Name="answerTxtBox" HorizontalAlignment="Left" Margin="220,152,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="240" FontSize="24" KeyDown="answerTxtBox_KeyDown"/>
-        <Button x:Name="submitBtn" Content="Send" HorizontalAlignment="Left" Margin="220,192,0,0" VerticalAlignment="Top" FontSize="24" Height="49" Width="240" Click="submitBtn_Click"/>
-        <Label x:Name="p1label" Content="P1 answer and time: ?" HorizontalAlignment="Left" Margin="10,257,0,0" VerticalAlignment="Top" FontSize="18"/>
-        <Label x:Name="p2label" Content="P2 answer and time: ?" HorizontalAlignment="Left" Margin="10,296,0,0" VerticalAlignment="Top" FontSize="18"/>
+        <Label x:Name="enterAnswerlbl" Content="Enter your answer:" HorizontalAlignment="Left" Margin="10,184,0,0" VerticalAlignment="Top" FontSize="24"/>
+        <TextBox x:Name="answerTxtBox" HorizontalAlignment="Left" Margin="220,192,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="240" FontSize="24" KeyDown="answerTxtBox_KeyDown"/>
+        <Button x:Name="submitBtn" Content="Send" HorizontalAlignment="Left" Margin="220,232,0,0" VerticalAlignment="Top" FontSize="24" Height="49" Width="240" Click="submitBtn_Click"/>
+        <Label x:Name="p1label" Content="P1 answer and time: ?" HorizontalAlignment="Left" Margin="10,286,0,0" VerticalAlignment="Top" FontSize="18"/>
+        <Label x:Name="p2label" Content="P2 answer and time: ?" HorizontalAlignment="Left" Margin="10,325,0,0" VerticalAlignment="Top" FontSize="18"/>
         <Label x:Name="playerWinlabel" Content="The right answer was: ? --&gt; P? Wins!" HorizontalAlignment="Center" Margin="0,359,0,0" VerticalAlignment="Top" FontSize="24"/>
     </Grid>
 </Window>

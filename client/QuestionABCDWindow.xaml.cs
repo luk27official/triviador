@@ -14,91 +14,98 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using Commons;
 
 namespace client
 {
     /// <summary>
-    /// Interakční logika pro QuestionABCDWindow.xaml
+    /// Interaction logic for QuestionABCDWindow.xaml
+    /// This window contains a question with four possible options.
+    /// It is shown when created from GameWindow.
     /// </summary>
     public partial class QuestionABCDWindow : Window
     {
-        private int msElapsed;
-        private int msTotal;
-        private bool answered;
-        private System.Timers.Timer timer;
-        private NetworkStream stream;
-        private int clientID;
+        private int _millisecondsElapsed;
+        private int _millisecondsMaximum;
+        private bool _questionAnswered;
+        private System.Timers.Timer _timer;
+        private NetworkStream _networkStream;
+        private int _clientID;
 
+        /// <summary>
+        /// Constructor for QuestionABCDWindow.
+        /// </summary>
+        /// <param name="data">Question from the server.</param>
+        /// <param name="stream">Stream used to communicate between the server and this client.</param>
+        /// <param name="clientID">Current client identifier.</param>
         public QuestionABCDWindow(string data, NetworkStream stream, int clientID)
         {
             InitializeComponent();
             ParseQuestion(data);
-            this.msElapsed = 0;
-            this.msTotal = 1000;
-            this.stream = stream;
-            this.clientID = clientID;
+            this._millisecondsElapsed = 0;
+            this._millisecondsMaximum = Constants.QUESTION_TIME;
+            this._networkStream = stream;
+            this._clientID = clientID;
+            this._timer = new System.Timers.Timer(Constants.MS_MULTIPLIER);
             TimerHandler();
         }
 
+        /// <summary>
+        /// A method which starts a timer for the question.
+        /// </summary>
         private void TimerHandler()
         {
-            timer = new System.Timers.Timer(10);
-
-            timer.Elapsed += ChangeTimerLabel;
-            timer.AutoReset = true;
-            timer.Enabled = true;
+            _timer.Elapsed += ChangeTimerLabel;
+            _timer.AutoReset = true;
+            _timer.Enabled = true;
         }
 
+        /// <summary>
+        /// A method which updates the time label.
+        /// </summary>
+        /// <param name="source">A timer from TimerHandler method.</param>
+        /// <param name="e">Event arguments.</param>
         private void ChangeTimerLabel(object? source, ElapsedEventArgs e)
         {
-            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format("Time left: {0} seconds", (msTotal - msElapsed) / 100); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format(Constants.TIMELEFT, (_millisecondsMaximum - _millisecondsElapsed) / (Constants.QUESTION_TIME / Constants.MS_MULTIPLIER)); });
 
-            msElapsed++;
+            _millisecondsElapsed++;
 
-            if (msElapsed > msTotal)
+            if(_millisecondsElapsed > _millisecondsMaximum)
             {
-                timer.Stop();
-                timer.Dispose();
-            }
-
-            if(msElapsed > msTotal)
-            {
-                timer.Stop();
-                timer.Dispose();
+                _timer.Stop();
+                _timer.Dispose();
                 TimeExpired();
             }
         }
 
+        /// <summary>
+        /// A method called by the timer when time for the question expires. 
+        /// Firstly assures some info has been sent, waits for the answers.
+        /// </summary>
         private void TimeExpired()
         {
-            //now we should wait for the server to send us the results
-            /*
-            App.Current.Dispatcher.Invoke((Action)delegate { answerAbtn.IsEnabled = false; });
-            App.Current.Dispatcher.Invoke((Action)delegate { answerBbtn.IsEnabled = false; });
-            App.Current.Dispatcher.Invoke((Action)delegate { answerCbtn.IsEnabled = false; });
-            App.Current.Dispatcher.Invoke((Action)delegate { answerDbtn.IsEnabled = false; });
-            */
-
-            if (!answered) //make sure we sent something
+            if (!_questionAnswered) //make sure we sent something
             {
-                string message = Constants.PREFIX_ANSWER + clientID + "_0"; //no answer
+                string message = Constants.PREFIX_ANSWER + _clientID + "_0"; //no answer -> send zero
                 byte[] msg = Encoding.ASCII.GetBytes(message);
-                stream.Write(msg, 0, msg.Length);
-                Console.WriteLine("Sent to the server: {0}", message);
+                _networkStream.Write(msg, 0, msg.Length);
             }
-            answered = true;
+            _questionAnswered = true;
 
-            //now lets wait for the response with information
             Byte[] data;
-            data = new Byte[1024];
+            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
             String responseData = String.Empty;
             Int32 bytes;
-            while (true) //wait for the first question
+            while (true)
             {
-                bytes = stream.Read(data, 0, data.Length);
+                bytes = _networkStream.Read(data, 0, data.Length);
                 responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                Console.WriteLine("Received: {0}", responseData);
-                if (responseData.StartsWith(Constants.PREFIX_FINALANSWERS)) //handle answers
+                if (responseData.StartsWith(Constants.PREFIX_DISCONNECTED))
+                {
+                    ClientCommon.HandleEnemyDisconnect();
+                }
+                else if (responseData.StartsWith(Constants.PREFIX_FINALANSWERS)) //handle answers
                 {
                     ShowFinalAnswers(responseData);
                     break;
@@ -106,11 +113,17 @@ namespace client
             }
 
         }
+
+        /// <summary>
+        /// Updates the window with the answers and player information.
+        /// </summary>
+        /// <param name="data">Response data containing the answers and information about players.</param>
         private void ShowFinalAnswers(string data)
         {
-            string[] splitData = data.Split('_');
-            //finalanswers_correctANS_P1ANS_P2ANS
+            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
             string correctAnswer = splitData[1];
+            //this could be done maybe a bit better, but more players would change the visual,
+            //so it would have to be re-done anyway...
             string p1Answer = splitData[2];
             string p2Answer = splitData[3];
 
@@ -118,39 +131,42 @@ namespace client
 
             foreach(Button button in buttons)
             {
-                App.Current.Dispatcher.Invoke((Action)delegate {
+                App.Current.Dispatcher.Invoke((Action)delegate
+                {
                     if (button.Content.ToString() == correctAnswer)
                     {
                         button.BorderThickness = new Thickness(5);
-                        button.BorderBrush = new SolidColorBrush(Color.FromArgb(255, 50, 255, 50));
+                        button.BorderBrush = BrushesAndColors.CORRECTANSWER_BRUSH;
                     }
 
                     if (button.Content.ToString() == p1Answer && (p1Answer == p2Answer))
                     {
                         LinearGradientBrush linGrBrush = new LinearGradientBrush(
-                            Color.FromArgb(255, 255, 0, 0),   // Opaque red
-                            Color.FromArgb(255, 0, 0, 255), 0);  // Opaque blue
-                                                                 //2 colors
+                            BrushesAndColors.REGION_COLORS[0],
+                            BrushesAndColors.REGION_COLORS[1],
+                            0);
                         button.Background = linGrBrush;
                     }
                     else if (button.Content.ToString() == p1Answer)
                     {
-                        button.Background = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0));
-                        //red color
+                        button.Background = BrushesAndColors.REGION_BRUSHES[0];
                     }
                     else if (button.Content.ToString() == p2Answer)
                     {
-                        button.Background = new SolidColorBrush(Color.FromArgb(255, 0, 0, 255));
-                        //blue color
+                        button.Background = BrushesAndColors.REGION_BRUSHES[1];
                     }
                 });
             }
 
-            //wait 5s so the clients can see the final answers
-            Thread.Sleep(5000);
+            Thread.Sleep(Constants.DELAY_SHOWANSWERS);
             App.Current.Dispatcher.Invoke((Action)delegate { this.Close(); });
         }
 
+        /// <summary>
+        /// Method returning a random button from the list. Used for shuffling the answers.
+        /// </summary>
+        /// <param name="list">List containing all form buttons.</param>
+        /// <returns>A random button from the list.</returns>
         private Button PickRandomButton(List<Button> list)
         {
             Random rnd = new Random();
@@ -158,10 +174,14 @@ namespace client
             return list[r];
         }
 
+        /// <summary>
+        /// Method updating the form labels and button contents with the question and possible options.
+        /// </summary>
+        /// <param name="data">Data from the server containing the question and options.</param>
         private void ParseQuestion(string data)
         {
-            string[] splitData = data.Split('_');
-            this.questionLabel.Content = splitData[1];
+            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
+            this.questionLabel.Text = splitData[1];
 
             List<Button> availableButtons = new List<Button> { this.answerAbtn, this.answerBbtn, this.answerCbtn, this.answerDbtn };
             
@@ -173,24 +193,28 @@ namespace client
             }
         }
 
-        private void HandleClick(string? answer, object sender)
+        /// <summary>
+        /// Method handling the sending of the picked answer to the server.
+        /// </summary>
+        /// <param name="answer">Answer to be sent.</param>
+        /// <param name="sender">A clicked button.</param>
+        private void HandleClick(string? answer, object? sender)
         {
-            if (answered) return;
+            if (_questionAnswered) return;
 
-            answered = true;
+            _questionAnswered = true;
 
-            Brush[] brushes = new Brush[Constants.MAX_PLAYERS];
-            brushes[0] = new SolidColorBrush(Color.FromArgb(255, 255, 0, 0)); //red
-            brushes[1] = new SolidColorBrush(Color.FromArgb(255, 0, 0, 255)); //blue
-
-            (sender as Button).Background = brushes[clientID];
-
-            string message = Constants.PREFIX_ANSWER + clientID + "_" + answer; //no answer
+            if(sender != null)
+            {
+                ((Button)sender).Background = BrushesAndColors.REGION_BRUSHES[_clientID];
+            }
+            
+            string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + answer;
             byte[] msg = Encoding.ASCII.GetBytes(message);
-            stream.Write(msg, 0, msg.Length);
-            Console.WriteLine("Sent to the server: {0}", message);
+            _networkStream.Write(msg, 0, msg.Length);
         }
 
+        //All of the methods below just assure that clicks on the buttons are handled.
         private void answerAbtn_Click(object sender, RoutedEventArgs e)
         {
             HandleClick(this.answerAbtn.Content.ToString(), sender);
