@@ -470,8 +470,10 @@ namespace server
 			}
 
 			//now we received the info that the player picked some region to attack, lets store it
-			Constants.Region attackedRegion = (Constants.Region) SecondRoundGetPickedRegion(receivedData);
-			//the return value should be never null!
+			#pragma warning disable CS8629 // Nullable value type may be null.
+				//the return value should be never null as one of the players always picks
+				Constants.Region attackedRegion = (Constants.Region) SecondRoundGetPickedRegion(receivedData);
+			#pragma warning restore CS8629 // Nullable value type may be null.
 			string attackMessage = Constants.PREFIX_ATTACK + attackedRegion.ToString();
 			SendMessageToAllClients(attackMessage);
 			return attackedRegion;
