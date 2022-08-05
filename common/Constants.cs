@@ -247,7 +247,7 @@ namespace Commons
 		public const string QUESTIONS_ABCD_FILENAME = "questionsABCD.txt";
 		public const string QUESTIONS_NUMS_FILENAME = "questionsNumber.txt";
 
-		public const string SERVER_ACCEPT = "Accepted client {0}";
+		public const string SERVER_ACCEPT = "Accepted client {0} (IP: {1})";
 		public const string SERVER_LISTEN = "Server listening at {0}:{1}";
 		public const string SERVER_ERROR = "An error occured. Is your config file valid?";
 		public const string SERVER_USING_DEFAULT = "Using default settings - Server listening at {0}:{1}";

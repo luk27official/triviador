@@ -126,7 +126,17 @@ namespace server
 
 			lock (_acceptedClients) //prevent from more clients accessing the array at once, register them and send the information about connection
 			{
-				Console.WriteLine(Constants.SERVER_ACCEPT, (_acceptedClientsIndex + 1).ToString());
+				EndPoint? ep1 = currentClient.Client.RemoteEndPoint;
+				IPEndPoint ep2;
+				if (ep1 == null)
+                {
+					ep2 = new IPEndPoint(IPAddress.Any, Constants.DEFAULT_SERVER_PORT);
+                }
+				else
+                {
+					ep2 = (IPEndPoint)ep1;
+                }
+				Console.WriteLine(Constants.SERVER_ACCEPT, (_acceptedClientsIndex + 1).ToString(), ep2.Address.ToString());
 				_acceptedClients[_acceptedClientsIndex] = currentClient;
 
 				if (_acceptedClientsIndex == 0) //inform the first user about their connection
