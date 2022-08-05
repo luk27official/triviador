@@ -2,19 +2,62 @@
 For basic information about the game read the main README.md.
 
 ### User documentation
-1. Client
+#### Client
+   
 Client app requires no setup. Just run the executable and the main window will appear.
 
+Main window contains two text fields where the IP address and port for the server are specified. The user may recieve some message in the textbox on the right side.
 
-2. Server
+<img src="images/main_window.png" />
+
+After connecting to the server, the main game window appears. It contains a map of the Czech Republic with 14 clickable regions. It also contains information about players' health points and regular points.
+
+There is a textbox on the bottom containing current game status, updated on a regular basis.
+
+Each of the players has an unique identifier shown on the board as well. Currently, the game supports 2 players, one with the red color and one with the blue color.
+
+The colors have the following meaning:
+- darker color shade represents the base regions
+- green color represents the region which is currently being under attack
+- yellow color represents currently picked region
+- striped pattern represents high valued regions
+
+<img src="images/game_window.png" />
+
+Currently, the game contains two types of questions, numeric questions and questions with 4 possible options.
+When the clients receive a question from the server, a question window pop-up is shown.
+
+The window for questions with choices contains just 4 buttons. After the time expires, enemy's answer is shown as well and the correct answer is marked by a green border around the responsible button.
+
+<div style="margin-left: auto; margin-right: auto; width: 50%;">
+<img src="images/question_choices.png" />
+</div>
+
+The window for numeric questions contains a text field, where the user may enter an answer. When the field contains invalid characters, 0 is sent to the server as an answer.
+
+After the time expires, both players' answers and answer times are sent back to the clients. A winner is announced and the game continues in the game window.
+
+<div style="margin-left: auto; margin-right: auto; width: 50%;">
+<img src="images/question_numeric.png" />
+</div>
+
+#### Server
+   
 The server currently requires multiple files to run. Before running, the administrator must prepare the following files inside the directory with the executable:
+
 `questionsABCD.txt` - contains questions with the possible answers, first one being the correct
+
 `questionsNumber.txt` - contains numeric questions with the correct answer
+
 `config.cfg` - here the administrator specifies the used IP address and port
 
 The administrator may use the defaults, but it is certainly possible to add new questions or modify the existing ones.
 
 After this the server may be run. The usage is very simple - just run the executable. The server will do everything automatically.
+
+Log example below:
+
+<img src="images/server_log.png" />
 
 ### Programmer documentation
 All used methods are documented in the code.
@@ -47,12 +90,19 @@ This means that the code inside had to be executed from the main thread (to upda
 
 ### Short files description
 `client/GameWindow.xaml(.cs)` - game board, controls main game logic
+
 `client/MainWindow.xaml(.cs)` - initial login window, controls client-server connection
+
 `client/QuestionABCDWindow.xaml(.cs)` - shows a window with some question with 4 possible answers
+
 `client/QuestionNumericWindow.xaml(.cs)` - shows a window with a numeric question
+
 `common/Constants.cs` - contains all common data
+
 `common/GameInformation.cs` - contains definitons for all common game information
+
 `server/Program.cs` - provides an entrypoint for the server
+
 `server/Server.cs` - contains all of the server logic
 
 ### Possible extensions
@@ -68,7 +118,7 @@ The program could be extended in many ways. Some of those contain:
 - question hints, points system
 - login system with a player database
 
-### Custon program review
+### Review
 The hardest part about creating the game was to actually think of the communication between clients and server. 
 Firstly, the idea was to use more async methods, but as the game got more complicated, it would have been too hard to manage the timings.
 Because the client's main thread (including windows) freezes entirely when using `Thread.Sleep()`, it was necessary to run the game logic in a different thread.
