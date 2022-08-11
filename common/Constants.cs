@@ -196,7 +196,7 @@ namespace Commons
 		public const string INVALID_PORT = "Invalid port entered!";
 		public const string CURRENT_ROUND = "Current round: {0}";
 
-		public const string QUESTION_RESULT = "P{0} answer and time: {1}, {2}";
+		public const string QUESTION_RESULT = "P{0} answer and time: {1}, {2} ms";
 		public const string QUESTION_WINNER = "The right answer was: {0} --> P{1} Wins!";
 		public const string TIMELEFT = "Time left: {0} seconds";
 
@@ -246,6 +246,8 @@ namespace Commons
 		public const string CONFIG_FILENAME = "config.cfg";
 		public const string QUESTIONS_ABCD_FILENAME = "questionsABCD.txt";
 		public const string QUESTIONS_NUMS_FILENAME = "questionsNumber.txt";
+
+		public const string CLIENT_TIME_LEFT = "Time left (sec): {0}";
 
 		public const string SERVER_ACCEPT = "Accepted client {0} (IP: {1})";
 		public const string SERVER_LISTEN = "Server listening at {0}:{1}";

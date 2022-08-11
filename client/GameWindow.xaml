@@ -37,12 +37,13 @@
         <TextBox x:Name="p1pointsTextBox" Margin="0,40,157,0" TextWrapping="Wrap" VerticalAlignment="Top" FontSize="24" IsEnabled="False" Text="pts" Height="34" HorizontalAlignment="Right" Width="120"/>
         <Label x:Name="Player_2_points" Content="Player 2 points:" HorizontalAlignment="Left" Margin="165,36,0,0" VerticalAlignment="Top" FontSize="24" Foreground="Blue" Grid.Column="1" Height="42" Width="170"/>
         <TextBox x:Name="p2pointsTextBox" HorizontalAlignment="Left" Margin="344,40,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" FontSize="24" IsEnabled="False" Text="pts" Grid.Column="1" Height="34"/>
-        <Label x:Name="playerIDLabel" Content="My player ID is ??" Margin="0,163,265,0" VerticalAlignment="Top" FontSize="24" Height="42" HorizontalAlignment="Right" Width="195" Grid.Row="1"/>
+        <Label x:Name="playerIDLabel" Content="My player ID is -" Margin="0,163,265,0" VerticalAlignment="Top" FontSize="24" Height="42" HorizontalAlignment="Right" Width="195" Grid.Row="1"/>
         <TextBox x:Name="gameStatusTextBox" TextWrapping="Wrap" Text="Information about the game will appear here." VerticalAlignment="Top" Height="38" FontSize="24" IsEnabled="False" Grid.ColumnSpan="2" Grid.Row="1" Margin="72,244,72,0" HorizontalAlignment="Center" Width="750"/>
         <Label x:Name="Player_1_hp" Content="Base health:" Margin="0,82,329,0" VerticalAlignment="Top" FontSize="24" Foreground="Red" Height="42" HorizontalAlignment="Right" Width="136"/>
         <TextBox x:Name="p1HealthTextBox" Margin="0,86,157,0" TextWrapping="Wrap" VerticalAlignment="Top" FontSize="24" IsEnabled="False" Text="hp" Height="34" HorizontalAlignment="Right" Width="120"/>
         <Label x:Name="Player_2_hp" Content="Base health:" HorizontalAlignment="Left" Margin="165,82,0,0" VerticalAlignment="Top" FontSize="24" Foreground="Blue" Grid.Column="1" Height="42" Width="136"/>
         <TextBox x:Name="p2HealthTextBox" HorizontalAlignment="Left" Margin="344,86,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" FontSize="24" IsEnabled="False" Text="hp" Grid.Column="1" Height="34"/>
-        <Label x:Name="currentRndLabel" Content="Current round: NaN" HorizontalAlignment="Left" Margin="244,163,0,0" VerticalAlignment="Top" FontSize="24" Grid.Column="1" Height="42" Width="220" Grid.Row="1"/>
+        <Label x:Name="currentRndLabel" Content="Current round: 0" HorizontalAlignment="Left" Margin="271,163,0,0" VerticalAlignment="Top" FontSize="24" Grid.Column="1" Height="42" Width="193" Grid.Row="1" Visibility="Hidden"/>
+        <Label x:Name="timeleftLabel" Content="Time left (sec): -" Margin="0,117,265,0" Grid.Row="1" VerticalAlignment="Top" FontSize="24" HorizontalAlignment="Right" Width="195"/>
     </Grid>
 </Window>

@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Commons;
+using System.Timers;
 
 namespace client
 {
@@ -116,6 +117,9 @@ namespace client
         private int _attackRoundNumber;
         private int _clientID;
 
+        private System.Timers.Timer timer;
+        private int timerCounter;
+
         /// <summary>
         /// Constructor for GameWindow.
         /// </summary>
@@ -162,6 +166,8 @@ namespace client
             {
                 FirstRound();
             }
+
+            App.Current.Dispatcher.Invoke((Action)delegate { this.currentRndLabel.Visibility = Visibility.Visible; });
 
             this._gameStatus = Constants.GameStatus.SecondRound_FirstVersion;
             for (int i = 0; i < Constants.SECOND_ROUND_FIRST_VERSION_QUESTIONS_COUNT; i++)
@@ -339,6 +345,15 @@ namespace client
                 }
             }
 
+            //firstly update the board
+            this.timerCounter = Constants.DELAY_CLIENT_PICK / 1000;
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timeleftLabel.Content = String.Format(Constants.CLIENT_TIME_LEFT, this.timerCounter); });
+
+            this.timer = new System.Timers.Timer(995); //basically 1s but to ensure it gets to zero it is a bit less
+            timer.Elapsed += TimeLeftPickTimerTick;
+            timer.AutoReset = true;
+            timer.Enabled = true;
+
             //after 5s lets see if it picked something, if not, then pick random
             Thread.Sleep(Constants.DELAY_CLIENT_PICK);
 
@@ -352,6 +367,22 @@ namespace client
             }
 
             App.Current.Dispatcher.Invoke((Action)delegate { UpdateGameInformation(); });
+        }
+
+        /// <summary>
+        /// A method called on timer tick while waiting for a pick.
+        /// </summary>
+        private void TimeLeftPickTimerTick(object? sender, ElapsedEventArgs e)
+        {
+            if(this.timerCounter == 0)
+            {
+                this.timer.Stop();
+                this.timer.Dispose();
+                return;
+            }
+
+            this.timerCounter--;
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timeleftLabel.Content = String.Format(Constants.CLIENT_TIME_LEFT, this.timerCounter); });
         }
 
         /// <summary>
@@ -406,6 +437,14 @@ namespace client
                     break;
                 }
             }
+
+            this.timerCounter = Constants.DELAY_CLIENT_PICK / 1000;
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timeleftLabel.Content = String.Format(Constants.CLIENT_TIME_LEFT, this.timerCounter); });
+
+            this.timer = new System.Timers.Timer(995); //basically 1s but to ensure it gets to zero it is a bit less
+            timer.Elapsed += TimeLeftPickTimerTick;
+            timer.AutoReset = true;
+            timer.Enabled = true;
 
             //after 5s lets see if it picked something, if not, then pick random
             Thread.Sleep(Constants.DELAY_CLIENT_PICK);
