@@ -7,6 +7,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Commons;
+using Newtonsoft.Json;
 
 namespace server
 {
@@ -18,10 +19,14 @@ namespace server
 		bool _running;
 		TcpListener _server;
 		TcpClient[] _acceptedClients;
-		int _acceptedClientsIndex;					//holds the number of already connected people
+		int _acceptedClientsIndex;							//holds the number of already connected people
 		GameInformation _gameInformation;
+		List<QuestionABCD> _questionsABCDWithAnswers;       //holds all of the questions with options
+		List<QuestionNumeric> _questionsNumericWithAnswers; //holds all of the numeric questions
+		/*
 		string[] _questionsABCDWithAnswers;			//holds all of the questions with options
 		string[] _questionsNumericWithAnswers;		//holds all of the numeric questions
+		*/
 		bool _playerDisconnected;					//did at least one player disconnect?
 
 		public Server()
@@ -38,8 +43,8 @@ namespace server
             {
                 using StreamReader reader = new(Constants.CONFIG_FILENAME);
 
-                reader.ReadLine();	//we do not need the first line, its there just for reference
-                string? line2 = reader.ReadLine(); //from the second line parse ip and port
+                reader.ReadLine();					//we do not need the first line, its there just for reference
+                string? line2 = reader.ReadLine();	//from the second line parse ip and port
 
 				if (line2 != null)
                 {
@@ -85,8 +90,8 @@ namespace server
 
 			try
 			{
-				_questionsABCDWithAnswers = File.ReadAllLines(Constants.QUESTIONS_ABCD_FILENAME);
-				_questionsNumericWithAnswers = File.ReadAllLines(Constants.QUESTIONS_NUMS_FILENAME);
+				_questionsABCDWithAnswers = JsonConvert.DeserializeObject<List<QuestionABCD>>(File.ReadAllText(Constants.QUESTIONS_ABCD_FILENAME));
+				_questionsNumericWithAnswers = JsonConvert.DeserializeObject<List<QuestionNumeric>>(File.ReadAllText(Constants.QUESTIONS_NUMS_FILENAME));
 				_server.Start();
 				_running = true;
 				while (_running)
@@ -172,22 +177,23 @@ namespace server
 			Play();
 		}
 
+
 		/// <summary>
 		/// Method assigning ID numbers to all clients.
 		/// </summary>
 		private void AssignPlayerIDs()
         {
 			int i = 0;
-			string[] availableIDs = new string[Constants.MAX_PLAYERS];
-			availableIDs[0] = Constants.P1ASSIGN;
-			availableIDs[1] = Constants.P2ASSIGN;
+			string[] msgs = new string[Constants.MAX_PLAYERS];
+			msgs[0] = MessageController.EncodeMessageIntoJSONWithPrefix("assign", "1");
+			msgs[1] = MessageController.EncodeMessageIntoJSONWithPrefix("assign", "2");
 
 			foreach (TcpClient client in _acceptedClients)
 			{
 				try
 				{
 					NetworkStream stream = client.GetStream();
-					string message = availableIDs[i];
+					string message = msgs[i];
 					byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
 					stream.Write(msg, 0, msg.Length);
 					Console.WriteLine(Constants.SERVER_SENT, i + 1, message);
@@ -836,9 +842,11 @@ namespace server
 		/// <returns>Random question with options.</returns>
 		private string PickRandomABCDQuestion()
         {
-			Random rnd = new();
+			/*Random rnd = new();
 			int r = rnd.Next(_questionsABCDWithAnswers.Length - 1);
 			return Constants.PREFIX_QUESTIONABCD + _questionsABCDWithAnswers[r];
+			*/
+			return "x";
 		}
 
 		/// <summary>
@@ -847,9 +855,12 @@ namespace server
 		/// <returns>Random numeric question.</returns>
 		private string PickRandomNumericQuestion()
         {
+			/*
 			Random rnd = new();
 			int r = rnd.Next(_questionsABCDWithAnswers.Length - 1);
 			return Constants.PREFIX_QUESTIONNUMBER + _questionsNumericWithAnswers[r];
+			*/
+			return "x";
 		}
 
 		/// <summary>

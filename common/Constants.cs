@@ -208,9 +208,6 @@ namespace Commons
 		public const string P1CONNECTED = "You have been connected, waiting for player 2.";
 		public const string P2CONNECTED = "Both players have connected, game starting soon.";
 
-		public const string P1ASSIGN = "assign_p1";
-		public const string P2ASSIGN = "assign_p2";
-
 		public const string PREFIX_ASSIGN = "assign_";
 		public const string PREFIX_GAMEUPDATE = "gameupdate_";
 		public const string PREFIX_QUESTIONABCD = "questionAW_";
@@ -244,8 +241,8 @@ namespace Commons
 		public const int MS_MULTIPLIER = 10;
 
 		public const string CONFIG_FILENAME = "config.cfg";
-		public const string QUESTIONS_ABCD_FILENAME = "questionsABCD.txt";
-		public const string QUESTIONS_NUMS_FILENAME = "questionsNumber.txt";
+		public const string QUESTIONS_ABCD_FILENAME = "questionsABCD.json";
+		public const string QUESTIONS_NUMS_FILENAME = "questionsNumber.json";
 
 		public const string CLIENT_TIME_LEFT = "Time left (sec): {0}";
 

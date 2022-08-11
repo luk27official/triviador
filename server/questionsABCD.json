@@ -1,0 +1,22 @@
+[
+  {
+    "content": "What is the capital of Switzerland?",
+    "correct": "Bern",
+    "answers": [
+      "Bern",
+      "Zurich",
+      "Geneva",
+      "Lucerne"
+    ]
+  },
+  {
+    "content": "Which UNIX command is used for searching in text?",
+    "correct": "grep",
+    "answers": [
+      "grep",
+      "ls",
+      "sudo",
+      "echo"
+    ]
+  }
+]

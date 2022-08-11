@@ -17,6 +17,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Commons;
 using System.Timers;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace client
 {
@@ -81,7 +83,7 @@ namespace client
             Grid g = new();
             g.Background = BrushesAndColors.REGION_BRUSHES[id];
 
-            Path p1 = new();
+            System.Windows.Shapes.Path p1 = new();
 
             LineGeometry myLineGeometry = new()
             {
@@ -108,7 +110,7 @@ namespace client
         private NetworkStream _stream;
         private GameInformation _gameInformation;
         private Window _questionWindow;             //currently opened window
-        private Path[] _gameBoardPaths;             //used for clicking/coloring the regions
+        private System.Windows.Shapes.Path[] _gameBoardPaths;             //used for clicking/coloring the regions
 
         private bool _pickingRegion;                //are we picking the region right now?
         private bool _anotherWindowInFocus;
@@ -131,7 +133,7 @@ namespace client
             this._gameStatus = Constants.GameStatus.Loading;
             this._gameInformation = new GameInformation();
             this._attackRoundNumber = 1;
-            this._gameBoardPaths = new Path[] { 
+            this._gameBoardPaths = new System.Windows.Shapes.Path[] { 
                 CZJC,
                 CZJM,
                 CZKA,
@@ -196,34 +198,37 @@ namespace client
             this._anotherWindowInFocus = false;
         }
 
+        private void ProcessMessage(string message)
+        {
+            // here we should deserialize the message into json object
+            // and then based on the type process the message
+            BasicMessage? msgFromJson = JsonConvert.DeserializeObject<BasicMessage>(message);
+            if (msgFromJson == null) return;
+
+            switch(msgFromJson.Type)
+            {
+                case "assign":
+                    if(msgFromJson.PlayerID != null)
+                    {
+                        this.playerIDLabel.Content = String.Format(Constants.PLAYER_ID_LABEL, msgFromJson.PlayerID);
+                    }
+                    break;
+                case "disconnect":
+                    ClientCommon.HandleEnemyDisconnect();
+                    break;
+                default:
+                    break;
+            }
+        }
+
         /// <summary>
         /// Entry point for the client. Server assigns some ID to the client.
         /// </summary>
         private void WaitForGameStart()
         {
-            Byte[] data;
-            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            string responseData;
-            Int32 bytes;
-
-            while (true) //wait for the ID assignment
-            {
-                bytes = _stream.Read(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                //Debug.WriteLine("Received: " + responseData);
-                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
-                {
-                    ClientCommon.HandleEnemyDisconnect();
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_ASSIGN)) //got an id assigned
-                {
-                    char lastChar = responseData[^1];
-                    this._clientID = Int32.Parse(lastChar.ToString());
-                    this.playerIDLabel.Content = String.Format(Constants.PLAYER_ID_LABEL, lastChar);
-                    break;
-                }
-            }
-
+            string message = MessageController.ReceiveMessage(_stream);
+            Debug.WriteLine(message);
+            ProcessMessage(message);
             //now we got the ids, so the server needs to set the right information
             UpdateGameInformation();
         }
@@ -797,7 +802,7 @@ namespace client
             _pickingRegion = false;
             if(sender != null)
             {
-                ((Path)sender).Fill = BrushesAndColors.REGIONCLICKED_BRUSH;
+                ((System.Windows.Shapes.Path)sender).Fill = BrushesAndColors.REGIONCLICKED_BRUSH;
             } 
             this.gameStatusTextBox.Text = String.Format(Constants.PLAYER_PICKED, region.ToString());
             SendPickedRegion(region);
