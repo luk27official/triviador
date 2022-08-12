@@ -103,10 +103,10 @@ namespace Commons
 
     public class QuestionNumeric
     {
+        [JsonProperty("content")]
+        public string Content;
+
         [JsonProperty("correct")]
         public string Correct;
-
-        [JsonProperty("answers")]
-        public string[] Answers;
     }
 }

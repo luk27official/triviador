@@ -11,15 +11,15 @@ namespace Commons
     /// </summary>
     public class GameInformation
     {
-        public int[] Points { get; private set; }
+        public int[] Points { get; set; }
 
-        public List<Constants.Region>[] Regions { get; private set; }
+        public List<Constants.Region>[] Regions { get; set; }
 
-        public int[] BaseHealths { get; private set; }
+        public int[] BaseHealths { get; set; }
 
-        public Constants.Region[] Bases { get; private set; }
+        public Constants.Region[] Bases { get; set; }
 
-        public List<Constants.Region> HighValueRegions { get; private set; }
+        public List<Constants.Region> HighValueRegions { get; set; }
 
         public GameInformation()
         {

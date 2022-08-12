@@ -239,9 +239,14 @@ namespace server
 			//basically just check if someone disconnected... if yes, inform the client
 			if (this._playerDisconnected)
 			{
-				SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + Constants.INVALID_CLIENT_ID);
+				SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("disconnect", playerID: "-1"));
+				//SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + Constants.INVALID_CLIENT_ID);
 			}
-			else SendMessageToAllClients(_gameInformation.EncodeInformationToString());
+			else
+			{
+				SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("gameupdate", gameInformation: _gameInformation));
+				//SendMessageToAllClients(_gameInformation.EncodeInformationToString());
+			}
         }
 
 		/// <summary>
@@ -282,9 +287,10 @@ namespace server
 		/// </summary>
 		private void FirstRound()
         {
-			string question = PickRandomNumericQuestion();
+			QuestionNumeric question = PickRandomNumericQuestion();
 
-			SendMessageToAllClients(question);
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix("questionnumeric", questionNumeric: question);
+			SendMessageToAllClients(message);
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 			//we have sent the question. Now we have to wait to register all answers...
@@ -336,8 +342,12 @@ namespace server
 			//we dont need the reg, x and y here, its there just for compatibility with a delegate
 
 			//send the players the info about their answers
-			string message = Constants.PREFIX_FINALANSWERS + answers[0] + Constants.GLOBAL_DELIMITER + answers[1] + Constants.GLOBAL_DELIMITER + 
+			/*string message = Constants.PREFIX_FINALANSWERS + answers[0] + Constants.GLOBAL_DELIMITER + answers[1] + Constants.GLOBAL_DELIMITER + 
 				times[0] + Constants.GLOBAL_DELIMITER + times[1] + Constants.GLOBAL_DELIMITER + rightAnswer + Constants.GLOBAL_DELIMITER + winnerID;
+			SendMessageToAllClients(message);
+			*/
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix("finalanswers", playerID: winnerID.ToString(), p1ans: answers[0].ToString(),
+				p2ans: answers[1].ToString(), p1time: times[0].ToString(), p2time: times[1].ToString(), correct: rightAnswer.ToString());
 			SendMessageToAllClients(message);
 
             Thread.Sleep(Constants.DELAY_SHOWANSWERS);
@@ -354,7 +364,8 @@ namespace server
 		private void SendFirstRoundPickAnnouncement(int clientID)
         {
 			//let the winner choose twice and the loser once
-			string message = Constants.PREFIX_PICKREGION + clientID;
+			//string message = Constants.PREFIX_PICKREGION + clientID;
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix("pickregion", playerID: clientID.ToString());
 			SendMessageToAllClients(message);
 
 			//wait for the picks
@@ -417,6 +428,8 @@ namespace server
         {
 			byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
 
+			//TODO: handle disconnect
+
 			int i = 0;
 			foreach (TcpClient client in _acceptedClients)
 			{
@@ -437,7 +450,8 @@ namespace server
 					this._playerDisconnected = true;
 					if (!message.StartsWith(Constants.PREFIX_DISCONNECTED))
                     {
-						SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + Constants.INVALID_CLIENT_ID);
+						SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("disconnect", playerID: "-1"));
+						//SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + Constants.INVALID_CLIENT_ID);
 						return;
 					}
 					continue;
@@ -457,7 +471,8 @@ namespace server
 		/// <returns>An attacked region.</returns>
 		private Constants.Region PicksSecondRound(int attackerID)
 		{
-			string message = Constants.PREFIX_PICKREGION + attackerID.ToString();
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix("pickregion", playerID: attackerID.ToString());
+			//string message = Constants.PREFIX_PICKREGION + attackerID.ToString();
 			SendMessageToAllClients(message);
 
 			//wait for the picks
@@ -490,7 +505,9 @@ namespace server
 				//the return value should be never null as one of the players always picks
 				Constants.Region attackedRegion = (Constants.Region) SecondRoundGetPickedRegion(receivedData);
 			#pragma warning restore CS8629 // Nullable value type may be null.
-			string attackMessage = Constants.PREFIX_ATTACK + attackedRegion.ToString();
+
+			string attackMessage = MessageController.EncodeMessageIntoJSONWithPrefix("attack", region: attackedRegion);
+			//string attackMessage = Constants.PREFIX_ATTACK + attackedRegion.ToString();
 			SendMessageToAllClients(attackMessage);
 			return attackedRegion;
 		}
@@ -514,8 +531,9 @@ namespace server
 			}
 
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-			string question = PickRandomABCDQuestion();
-			SendMessageToAllClients(question);
+			QuestionABCD question = PickRandomABCDQuestion();
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix("questionabcd", questionABCD: question);
+			SendMessageToAllClients(message);
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 
@@ -557,15 +575,16 @@ namespace server
 		/// <param name="attackerID">Attacker client identifier.</param>
 		/// <param name="defenderID">Defender client identifier.</param>
 		/// <param name="attackedRegion">Region which is being attacked.</param>
-		private void DecideSecondRoundWinnerFirstQuestion(string[] answers, string question, int attackerID, int defenderID, Constants.Region attackedRegion)
+		private void DecideSecondRoundWinnerFirstQuestion(string[] answers, QuestionABCD question, int attackerID, int defenderID, Constants.Region attackedRegion)
 		{
 			//finalanswers_correctANS_P1ANS_P2ANS
-			string[] splitQuestion = question.Split(Constants.GLOBAL_DELIMITER);
-			string correct = splitQuestion[2];
+			string correct = question.Correct;
 			string p1Answer = answers[0];
 			string p2Answer = answers[1];
 
-			SendMessageToAllClients(Constants.PREFIX_FINALANSWERS + correct + Constants.GLOBAL_DELIMITER + p1Answer + Constants.GLOBAL_DELIMITER + p2Answer);
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix("finalanswersABCD", p1ans: answers[0], p2ans: answers[1], correct: correct);
+
+			SendMessageToAllClients(message);
 
 			Thread.Sleep(Constants.DELAY_SHOWANSWERS);
 
@@ -665,8 +684,10 @@ namespace server
 		private void SecondRoundAnotherQuestion(int attackerID, int defenderID, Constants.Region attackedRegion)
 		{
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
-			string question = PickRandomNumericQuestion();
-			SendMessageToAllClients(question);
+
+			QuestionNumeric question = PickRandomNumericQuestion();
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix("questionnumeric", questionNumeric: question);
+			SendMessageToAllClients(message);
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 
@@ -717,8 +738,8 @@ namespace server
 		{
 			if (attackedRegion == null || defenderID == null || attackerID == null) return;
 			//send the players the info about their answers
-			string message = Constants.PREFIX_FINALANSWERS + answers[0] + Constants.GLOBAL_DELIMITER + answers[1] + Constants.GLOBAL_DELIMITER +
-				times[0] + Constants.GLOBAL_DELIMITER + times[1] + Constants.GLOBAL_DELIMITER + rightAnswer + Constants.GLOBAL_DELIMITER + winnerID;
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix("finalanswers", playerID: winnerID.ToString(), p1ans: answers[0].ToString(),
+				p2ans: answers[1].ToString(), p1time: times[0].ToString(), p2time: times[1].ToString(), correct: rightAnswer.ToString());
 			SendMessageToAllClients(message);
 
 
@@ -767,11 +788,11 @@ namespace server
 		/// <param name="region">Attacked region, if available.</param>
 		/// <param name="defenderID">Defender client identifier, if available.</param>
 		/// <param name="attackerID">Attacker client identifier, if available.</param>
-		private void DecideNumberQuestionWinnerAndInform(int[] answers, int[] times, string question,
+		private void DecideNumberQuestionWinnerAndInform(int[] answers, int[] times, QuestionNumeric question,
 			Action<int[], int[], int, int, int, Constants.Region?, int?, int?> decideWin,
 			Constants.Region? region, int? defenderID, int? attackerID)
 		{
-			int rightAnswer = Int32.Parse(question.Split(Constants.GLOBAL_DELIMITER)[2]);
+			int rightAnswer = Int32.Parse(question.Correct);
 
 			if (Math.Abs(answers[0] - rightAnswer) < Math.Abs(answers[1] - rightAnswer))
 			{
@@ -833,34 +854,27 @@ namespace server
 		/// <returns>Game over message for the clients.</returns>
 		private string GameOverMessage(int winnerID)
         {
-			return Constants.PREFIX_GAMEOVER + winnerID;
+			return MessageController.EncodeMessageIntoJSONWithPrefix("gameover", playerID: winnerID.ToString());
 		}
 
 		/// <summary>
 		/// Picks a random question from the loaded questions.
 		/// </summary>
 		/// <returns>Random question with options.</returns>
-		private string PickRandomABCDQuestion()
+		private QuestionABCD PickRandomABCDQuestion()
         {
-			/*Random rnd = new();
-			int r = rnd.Next(_questionsABCDWithAnswers.Length - 1);
-			return Constants.PREFIX_QUESTIONABCD + _questionsABCDWithAnswers[r];
-			*/
-			return "x";
+			Random rnd = new();
+			return this._questionsABCDWithAnswers[rnd.Next(this._questionsABCDWithAnswers.Count)];
 		}
 
 		/// <summary>
 		/// Picks a random numeric question from the loaded questions.
 		/// </summary>
 		/// <returns>Random numeric question.</returns>
-		private string PickRandomNumericQuestion()
+		private QuestionNumeric PickRandomNumericQuestion()
         {
-			/*
 			Random rnd = new();
-			int r = rnd.Next(_questionsABCDWithAnswers.Length - 1);
-			return Constants.PREFIX_QUESTIONNUMBER + _questionsNumericWithAnswers[r];
-			*/
-			return "x";
+			return this._questionsNumericWithAnswers[rnd.Next(this._questionsNumericWithAnswers.Count)];
 		}
 
 		/// <summary>

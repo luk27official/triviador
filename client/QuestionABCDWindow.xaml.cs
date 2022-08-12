@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Commons;
+using Newtonsoft.Json;
 
 namespace client
 {
@@ -35,13 +36,13 @@ namespace client
         /// <summary>
         /// Constructor for QuestionABCDWindow.
         /// </summary>
-        /// <param name="data">Question from the server.</param>
+        /// <param name="question">Question from the server.</param>
         /// <param name="stream">Stream used to communicate between the server and this client.</param>
         /// <param name="clientID">Current client identifier.</param>
-        public QuestionABCDWindow(string data, NetworkStream stream, int clientID)
+        public QuestionABCDWindow(QuestionABCD question, NetworkStream stream, int clientID)
         {
             InitializeComponent();
-            ParseQuestion(data);
+            ParseQuestion(question);
             this._millisecondsElapsed = 0;
             this._millisecondsMaximum = Constants.QUESTION_TIME;
             this._networkStream = stream;
@@ -93,39 +94,42 @@ namespace client
             }
             _questionAnswered = true;
 
-            Byte[] data;
-            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            String responseData = String.Empty;
-            Int32 bytes;
-            while (true)
-            {
-                bytes = _networkStream.Read(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                if (responseData.StartsWith(Constants.PREFIX_DISCONNECTED))
-                {
-                    ClientCommon.HandleEnemyDisconnect();
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_FINALANSWERS)) //handle answers
-                {
-                    ShowFinalAnswers(responseData);
-                    break;
-                }
-            }
+            ReceiveAndProcessMessage();
+        }
 
+        private void ReceiveAndProcessMessage()
+        {
+            string message = MessageController.ReceiveMessage(this._networkStream);
+            ProcessMessage(message);
+        }
+
+        private void ProcessMessage(string message)
+        {
+            BasicMessage? msgFromJson = JsonConvert.DeserializeObject<BasicMessage>(message);
+            if (msgFromJson == null) return;
+
+            switch (msgFromJson.Type)
+            {
+                case "disconnect":
+                    ClientCommon.HandleEnemyDisconnect();
+                    break;
+                case "finalanswersABCD":
+                    //handle final answers abcd
+                    ShowFinalAnswers(msgFromJson.P1Ans, msgFromJson.P2Ans, msgFromJson.Correct);
+                    break;
+                default:
+                    break;
+            }
         }
 
         /// <summary>
         /// Updates the window with the answers and player information.
         /// </summary>
         /// <param name="data">Response data containing the answers and information about players.</param>
-        private void ShowFinalAnswers(string data)
+        private void ShowFinalAnswers(string? p1ans, string? p2ans, string? correctAns)
         {
-            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
-            string correctAnswer = splitData[1];
             //this could be done maybe a bit better, but more players would change the visual,
             //so it would have to be re-done anyway...
-            string p1Answer = splitData[2];
-            string p2Answer = splitData[3];
 
             List<Button> buttons = new List<Button> { this.answerAbtn, this.answerBbtn, this.answerCbtn, this.answerDbtn };
 
@@ -133,13 +137,13 @@ namespace client
             {
                 App.Current.Dispatcher.Invoke((Action)delegate
                 {
-                    if (button.Content.ToString() == correctAnswer)
+                    if (button.Content.ToString() == correctAns)
                     {
                         button.BorderThickness = new Thickness(5);
                         button.BorderBrush = BrushesAndColors.CORRECTANSWER_BRUSH;
                     }
 
-                    if (button.Content.ToString() == p1Answer && (p1Answer == p2Answer))
+                    if (button.Content.ToString() == p1ans && (p1ans == p2ans))
                     {
                         LinearGradientBrush linGrBrush = new LinearGradientBrush(
                             BrushesAndColors.REGION_COLORS[0],
@@ -147,11 +151,11 @@ namespace client
                             0);
                         button.Background = linGrBrush;
                     }
-                    else if (button.Content.ToString() == p1Answer)
+                    else if (button.Content.ToString() == p1ans)
                     {
                         button.Background = BrushesAndColors.REGION_BRUSHES[0];
                     }
-                    else if (button.Content.ToString() == p2Answer)
+                    else if (button.Content.ToString() == p2ans)
                     {
                         button.Background = BrushesAndColors.REGION_BRUSHES[1];
                     }
@@ -177,18 +181,18 @@ namespace client
         /// <summary>
         /// Method updating the form labels and button contents with the question and possible options.
         /// </summary>
-        /// <param name="data">Data from the server containing the question and options.</param>
-        private void ParseQuestion(string data)
+        /// <param name="question">Data from the server containing the question and options.</param>
+        private void ParseQuestion(QuestionABCD question)
         {
-            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
-            this.questionLabel.Text = splitData[1];
+
+            this.questionLabel.Text = question.Content;
 
             List<Button> availableButtons = new List<Button> { this.answerAbtn, this.answerBbtn, this.answerCbtn, this.answerDbtn };
             
-            for(int i = 2; i < splitData.Length; i++)
+            for(int i = 0; i < question.Answers.Length; i++)
             {
                 Button rand = PickRandomButton(availableButtons);
-                rand.Content = splitData[i];
+                rand.Content = question.Answers[i];
                 availableButtons.Remove(rand);
             }
         }
