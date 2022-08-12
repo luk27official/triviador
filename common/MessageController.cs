@@ -22,11 +22,20 @@ namespace Commons
                 GameInformation = gameInformation,
                 QuestionABCD = questionABCD,
                 QuestionNumeric = questionNumeric,
-                Correct = correct,
-                P1Time = p1time,
-                P2Time = p2time,
-                P1Ans = p1ans,
-                P2Ans = p2ans
+                AnswerDetails = new AnswerDetails
+                {
+                    Correct = correct,
+                    Answers = new string?[]
+                    {
+                        p1ans,
+                        p2ans
+                    },
+                    Times = new string?[]
+                    { 
+                        p1time,
+                        p2time
+                    }
+                }
             };
 
             string converted = JsonConvert.SerializeObject(message, Formatting.Indented);
@@ -51,7 +60,6 @@ namespace Commons
 
                 int size = stream.Read(data, 0, 8); //read first 8 bytes to know the size of the message
                 string supposedBytes = Encoding.ASCII.GetString(data, 0, size);
-                //string supposedBytes = "56";
 
                 int totalRead = 8;
 
@@ -78,26 +86,6 @@ namespace Commons
             }
             //here str is the response
             return response;
-
-            /*
-            while (true) //wait for the ID assignment
-            {
-                bytes = _stream.Read(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                //Debug.WriteLine("Received: " + responseData);
-                if (responseData.Contains(Constants.PREFIX_DISCONNECTED))
-                {
-                    ClientCommon.HandleEnemyDisconnect();
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_ASSIGN)) //got an id assigned
-                {
-                    char lastChar = responseData[^1];
-                    this._clientID = Int32.Parse(lastChar.ToString());
-                    this.playerIDLabel.Content = String.Format(Constants.PLAYER_ID_LABEL, lastChar);
-                    break;
-                }
-            }
-            */
         }
     }
 }

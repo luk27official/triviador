@@ -88,7 +88,9 @@ namespace client
         {
             if (!_questionAnswered) //make sure we sent something
             {
-                string message = Constants.PREFIX_ANSWER + _clientID + "_0"; //no answer -> send zero
+                string message = "";
+                if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerABCD", p1ans: "0");
+                else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerABCD", p2ans: "0"); //no answer -> send zero
                 byte[] msg = Encoding.ASCII.GetBytes(message);
                 _networkStream.Write(msg, 0, msg.Length);
             }
@@ -115,7 +117,10 @@ namespace client
                     break;
                 case "finalanswersABCD":
                     //handle final answers abcd
-                    ShowFinalAnswers(msgFromJson.P1Ans, msgFromJson.P2Ans, msgFromJson.Correct);
+                    if(msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null)
+                    {
+                        ShowFinalAnswers(msgFromJson.AnswerDetails.Answers[0], msgFromJson.AnswerDetails.Answers[1], msgFromJson.AnswerDetails.Correct);
+                    }
                     break;
                 default:
                     break;
@@ -210,10 +215,12 @@ namespace client
 
             if(sender != null)
             {
-                ((Button)sender).Background = BrushesAndColors.REGION_BRUSHES[_clientID];
+                ((Button)sender).Background = BrushesAndColors.REGION_BRUSHES[_clientID - 1];
             }
             
-            string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + answer;
+            string message = "";
+            if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerABCD", p1ans: answer);
+            else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerABCD", p2ans: answer);
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _networkStream.Write(msg, 0, msg.Length);
         }

@@ -73,20 +73,20 @@ namespace Commons
         [JsonProperty("questionnumeric")]
         public QuestionNumeric? QuestionNumeric;
 
+        [JsonProperty("answerdetails")]
+        public AnswerDetails? AnswerDetails;
+    }
+
+    public class AnswerDetails
+    {
         [JsonProperty("correct")]
         public string? Correct;
 
-        [JsonProperty("p1time")]
-        public string? P1Time;
+        [JsonProperty("times")]
+        public string?[]? Times;
 
-        [JsonProperty("p2time")]
-        public string? P2Time;
-
-        [JsonProperty("p1ans")]
-        public string? P1Ans;
-
-        [JsonProperty("p2ans")]
-        public string? P2Ans;
+        [JsonProperty("answers")]
+        public string?[]? Answers;
     }
 
     public class QuestionABCD

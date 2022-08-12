@@ -108,7 +108,10 @@ namespace client
                     break;
                 case "finalanswers":
                     //handle final answers numeric
-                    ShowFinalAnswers(msgFromJson.P1Ans, msgFromJson.P2Ans, msgFromJson.P1Time, msgFromJson.P2Time, msgFromJson.PlayerID, msgFromJson.Correct);
+                    if(msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null && msgFromJson.AnswerDetails.Times != null)
+                    {
+                        ShowFinalAnswers(msgFromJson.AnswerDetails.Answers[0], msgFromJson.AnswerDetails.Answers[1], msgFromJson.AnswerDetails.Times[0], msgFromJson.AnswerDetails.Times[1], msgFromJson.PlayerID, msgFromJson.AnswerDetails.Correct);
+                    }
                     break;
                 default:
                     break;
@@ -126,7 +129,9 @@ namespace client
             if (!_questionAnswered) //make sure we sent something
             {
                 _stopwatch.Stop();
-                string message = Constants.PREFIX_ANSWER + _clientID + "_0_" + _stopwatch.ElapsedMilliseconds;
+                string message = "";
+                if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p1ans: "0", p1time: _stopwatch.ElapsedMilliseconds.ToString());
+                else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p2ans: "0", p2time: _stopwatch.ElapsedMilliseconds.ToString());
                 byte[] msg = Encoding.ASCII.GetBytes(message);
                 _networkStream.Write(msg, 0, msg.Length);
             }
@@ -174,7 +179,11 @@ namespace client
             {
                 ans = 0; //if entered invalid value pass an 0
             }
-            string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + ans.ToString() + Constants.GLOBAL_DELIMITER + _stopwatch.ElapsedMilliseconds;
+            string message = "";
+            if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p1ans: ans.ToString(), p1time: _stopwatch.ElapsedMilliseconds.ToString());
+            else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p2ans: ans.ToString(), p2time: _stopwatch.ElapsedMilliseconds.ToString());
+
+            //string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + ans.ToString() + Constants.GLOBAL_DELIMITER + _stopwatch.ElapsedMilliseconds;
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _networkStream.Write(msg, 0, msg.Length);
         }

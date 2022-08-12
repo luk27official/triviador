@@ -281,7 +281,7 @@ namespace client
                         this._anotherWindowInFocus = true;
 
                         App.Current.Dispatcher.Invoke((Action)delegate {
-                            this._questionWindow = new QuestionABCDWindow(msgFromJson.QuestionABCD, _stream, _clientID - 1);
+                            this._questionWindow = new QuestionABCDWindow(msgFromJson.QuestionABCD, _stream, _clientID);
                         });
                         App.Current.Dispatcher.Invoke((Action)delegate {
                             this._questionWindow.Show();
@@ -477,16 +477,10 @@ namespace client
         /// </summary>
         private void SecondRoundAfterFirstQuestion()
         {
-            Byte[] data;
-            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            String responseData = String.Empty;
-            Int32 bytes;
-
             this._secondRoundInProgress = true;
 
             //here we have to wait in the thread because there is an question open.
             SpinWait.SpinUntil(() => this._anotherWindowInFocus == false);
-
 
             //here the client can receive more types of answers!!
             ReceiveAndProcessMessage();
@@ -582,16 +576,7 @@ namespace client
         /// <param name="region">Picked region.</param>
         private void SendPickedRegion(Constants.Region? region)
         {
-            string message = Constants.PREFIX_PICKED + _clientID + Constants.GLOBAL_DELIMITER;
-            if(region == null)
-            {
-                message += Constants.INVALID_CLIENT_ID.ToString();
-            }
-            else
-            {
-                message += region.Value;
-            }
-
+            string message = MessageController.EncodeMessageIntoJSONWithPrefix("picked", playerID: _clientID.ToString(), region: region);
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _stream.Write(msg, 0, msg.Length);
         }

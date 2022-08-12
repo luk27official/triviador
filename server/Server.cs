@@ -23,6 +23,13 @@ namespace server
 		GameInformation _gameInformation;
 		List<QuestionABCD> _questionsABCDWithAnswers;       //holds all of the questions with options
 		List<QuestionNumeric> _questionsNumericWithAnswers; //holds all of the numeric questions
+
+		private Constants.GameStatus _gameStatus;
+		int[] _answers;
+		int[] _times;
+		string[] _answersABCD;
+		Constants.Region _attackedRegion;
+
 		/*
 		string[] _questionsABCDWithAnswers;			//holds all of the questions with options
 		string[] _questionsNumericWithAnswers;		//holds all of the numeric questions
@@ -78,13 +85,17 @@ namespace server
 			_gameInformation = new GameInformation();
             Console.WriteLine(Constants.SERVER_RESET);
 			_playerDisconnected = false;
+			_answers = new int[Constants.MAX_PLAYERS];
+			_times = new int[Constants.MAX_PLAYERS];
+			_answersABCD = new string[Constants.MAX_PLAYERS];
+			_attackedRegion = 0;
 		}
 
-		/// <summary>
-		/// Starts the server. Reads the questions from specified files and handles client connections.
-		/// </summary>
-		/// <exception cref="Constants.DisconnectException">Exception thrown when some of the players disconnect.</exception>
-		public void Start()
+        /// <summary>
+        /// Starts the server. Reads the questions from specified files and handles client connections.
+        /// </summary>
+        /// <exception cref="Constants.DisconnectException">Exception thrown when some of the players disconnect.</exception>
+        public void Start()
 		{
 			ResetInformation();
 
@@ -115,6 +126,95 @@ namespace server
 			catch (Exception e)
             {
                 Console.WriteLine(Constants.ERROR, e.Message);
+            }
+		}
+
+		private void ReceiveAndProcessMessageFromAllClients()
+        {
+			int i = 0;
+
+			string[] receivedMessages = new string[Constants.MAX_PLAYERS];
+
+			foreach (TcpClient client in _acceptedClients)
+			{
+				try
+				{
+					NetworkStream stream = client.GetStream();
+
+					string response = MessageController.ReceiveMessage(stream);
+					Console.WriteLine(Constants.SERVER_RECEIVE, response);
+
+					receivedMessages[i] = response;
+				}
+				catch (Exception)
+				{
+					this._playerDisconnected = true;
+					continue;
+				}
+				finally
+                {
+					i++;
+				}
+			}
+
+			for(i = 0; i < Constants.MAX_PLAYERS; i++)
+            {
+				ProcessMessage(receivedMessages[i], i);
+            }
+		}
+
+		private void ProcessMessage(string message, int clientIndex)
+        {
+			BasicMessage? msgFromJson = JsonConvert.DeserializeObject<BasicMessage>(message);
+			if (msgFromJson == null) return;
+
+			//handle message
+			switch (msgFromJson.Type)
+            {
+				case "answerNumeric":
+					if (msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null && msgFromJson.AnswerDetails.Times != null)
+					{
+						if (Int32.TryParse(msgFromJson.AnswerDetails.Answers[clientIndex], out int parsedAns))
+						{
+							_answers[clientIndex] = parsedAns;
+						}
+						if (Int32.TryParse(msgFromJson.AnswerDetails.Times[clientIndex], out int parsedTime))
+						{
+							_times[clientIndex] = parsedTime;
+						}
+					}
+					break;
+				case "answerABCD":
+					if(msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null)
+                    {
+                        if (msgFromJson.AnswerDetails.Answers[clientIndex] != null)
+                        {
+							_answersABCD[clientIndex] = msgFromJson.AnswerDetails.Answers[clientIndex];
+                        }
+                    }
+					break;
+				case "picked":
+					if(this._gameStatus == Constants.GameStatus.FirstRound)
+                    {
+						if (msgFromJson.PlayerID != null && msgFromJson.Region != null)
+						{
+							int player = Int32.Parse(msgFromJson.PlayerID);
+							this._gameInformation.AddPoints(player, Constants.POINTS_BASIC_REGION);
+							this._gameInformation.AddRegion(player, (Constants.Region)msgFromJson.Region);
+							SendGameInfoAndCheckDisconnect();
+						}
+						break;
+					}
+					else if(this._gameStatus == Constants.GameStatus.SecondRound_FirstVersion || this._gameStatus == Constants.GameStatus.SecondRound_SecondVersion)
+                    {
+						if (msgFromJson.Region != null)
+                        {
+							_attackedRegion = (Constants.Region)msgFromJson.Region;
+						}
+                    }
+					break;
+				default:
+					break;
             }
 		}
 
@@ -255,12 +355,16 @@ namespace server
 		private void Play()
         {
 			AssignBaseRegions();
-			
+
+			this._gameStatus = Constants.GameStatus.FirstRound;
+
 			for(int i = 0; i < Constants.FIRST_ROUND_QUESTIONS_COUNT; i++)
             {
 				Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 				FirstRound();
 			}
+
+			this._gameStatus = Constants.GameStatus.SecondRound_FirstVersion; //this should switch after a few rounds but it doesnt matter
 
 			for(int i = 0; i < (Constants.SECOND_ROUND_FIRST_VERSION_QUESTIONS_COUNT + 
 				Constants.SECOND_ROUND_SECOND_VERSION_QUESTIONS_COUNT) / 4; i++)
@@ -294,36 +398,9 @@ namespace server
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 			//we have sent the question. Now we have to wait to register all answers...
-			string responseData;
-			Int32 bytes;
-			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
+			ReceiveAndProcessMessageFromAllClients();
 
-			int[] answers = new int[Constants.MAX_PLAYERS];
-			int[] times = new int[Constants.MAX_PLAYERS];
-
-			int i = 0;
-
-			foreach (TcpClient client in _acceptedClients)
-			{
-				try
-				{
-					NetworkStream stream = client.GetStream();
-					bytes = stream.Read(data, 0, data.Length);
-					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine(Constants.SERVER_RECEIVE, responseData);
-					string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
-					answers[i] = Int32.Parse(splitData[2]);
-					times[i] = Int32.Parse(splitData[3]);
-					i++;
-				}
-				catch (Exception)
-				{
-					this._playerDisconnected = true;
-					continue;
-				}
-			}
-
-			DecideNumberQuestionWinnerAndInform(answers, times, question, FirstRoundWin, null, null, null);
+			DecideNumberQuestionWinnerAndInform(_answers, _times, question, FirstRoundWin, null, null, null);
 		}
 
 		/// <summary>
@@ -364,59 +441,14 @@ namespace server
 		private void SendFirstRoundPickAnnouncement(int clientID)
         {
 			//let the winner choose twice and the loser once
-			//string message = Constants.PREFIX_PICKREGION + clientID;
 			string message = MessageController.EncodeMessageIntoJSONWithPrefix("pickregion", playerID: clientID.ToString());
 			SendMessageToAllClients(message);
 
 			//wait for the picks
 			Thread.Sleep(Constants.DELAY_FIRSTROUND_PICKS);
-			string[] receivedData = new string[Constants.MAX_PLAYERS];
-			Int32 bytes;
-			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
-			int i = 0;
 
-			foreach (TcpClient client in _acceptedClients)
-			{
-				try
-				{
-					NetworkStream stream = client.GetStream();
-					bytes = stream.Read(data, 0, data.Length);
-					receivedData[i] = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine(Constants.SERVER_RECEIVE, receivedData[i]);
-					i++;
-				}
-				catch (Exception)
-				{
-					this._playerDisconnected = true;
-					continue;
-				}
-			}
-			UpdateGameInformationBasedOnPickFirstRound(receivedData);
+			ReceiveAndProcessMessageFromAllClients();
 			Thread.Sleep(Constants.DELAY_WAITFORCLIENTUPDATE);
-		}
-
-		/// <summary>
-		/// Method updating the server's game information based on the pick from the player.
-		/// </summary>
-		/// <param name="data">Client instruction with data about the picked region.</param>
-		private void UpdateGameInformationBasedOnPickFirstRound(string[] data)
-        {
-			//Received: picked_1_CZST
-			foreach(string current in data)
-            {
-				string[] splitData = current.Split(Constants.GLOBAL_DELIMITER);
-				if (splitData[2] != Constants.INVALID_CLIENT_ID.ToString())
-				{
-					int player = Int32.Parse(splitData[1]);
-					if (Enum.TryParse(splitData[2], out Constants.Region reg))
-					{
-						this._gameInformation.AddPoints(player, Constants.POINTS_BASIC_REGION);
-						this._gameInformation.AddRegion(player, reg);
-						SendGameInfoAndCheckDisconnect();
-						break;
-					}
-				}
-			}
 		}
 
 		/// <summary>
@@ -478,38 +510,12 @@ namespace server
 			//wait for the picks
 			Thread.Sleep(Constants.DELAY_FIRSTROUND_PICKS);
 
-			string[] receivedData = new string[Constants.MAX_PLAYERS];
-			Int32 bytes;
-			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
-			int i = 0;
+			ReceiveAndProcessMessageFromAllClients();
 
-			foreach (TcpClient client in _acceptedClients)
-			{
-				try
-				{
-					NetworkStream stream = client.GetStream();
-					bytes = stream.Read(data, 0, data.Length);
-					receivedData[i] = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine(Constants.SERVER_RECEIVE, receivedData[i]);
-					i++;
-				}
-				catch (Exception)
-				{
-					this._playerDisconnected = true;
-					continue;
-				}
-			}
-
-			//now we received the info that the player picked some region to attack, lets store it
-			#pragma warning disable CS8629 // Nullable value type may be null.
-				//the return value should be never null as one of the players always picks
-				Constants.Region attackedRegion = (Constants.Region) SecondRoundGetPickedRegion(receivedData);
-			#pragma warning restore CS8629 // Nullable value type may be null.
-
-			string attackMessage = MessageController.EncodeMessageIntoJSONWithPrefix("attack", region: attackedRegion);
+			string attackMessage = MessageController.EncodeMessageIntoJSONWithPrefix("attack", region: _attackedRegion);
 			//string attackMessage = Constants.PREFIX_ATTACK + attackedRegion.ToString();
 			SendMessageToAllClients(attackMessage);
-			return attackedRegion;
+			return _attackedRegion;
 		}
 
 		/// <summary>
@@ -520,14 +526,13 @@ namespace server
 		/// <param name="repeatedBaseAttack">True, if it is a repeated attack (first one succeeded).</param>
 		private void SecondRound(int attackerID, int otherID, bool repeatedBaseAttack)
 		{
-			Constants.Region reg;
 			if (repeatedBaseAttack)
 			{
-				reg = this._gameInformation.Bases[otherID - 1];
+				_attackedRegion = this._gameInformation.Bases[otherID - 1];
 			}
 			else
 			{
-				reg = PicksSecondRound(attackerID);
+				_attackedRegion = PicksSecondRound(attackerID);
 			}
 
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
@@ -537,33 +542,9 @@ namespace server
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 
-			string responseData;
-			Int32 bytes;
-			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
+			ReceiveAndProcessMessageFromAllClients();
 
-			string[] answers = new string[Constants.MAX_PLAYERS];
-			int i = 0;
-
-			foreach (TcpClient client in _acceptedClients)
-			{
-				try
-				{
-					NetworkStream stream = client.GetStream();
-					bytes = stream.Read(data, 0, data.Length);
-					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine(Constants.SERVER_RECEIVE, responseData);
-					string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
-					answers[i] = splitData[2];
-					i++;
-				}
-				catch (Exception)
-				{
-					this._playerDisconnected = true;
-					continue;
-				}
-			}
-
-			DecideSecondRoundWinnerFirstQuestion(answers, question, attackerID, otherID, reg);
+			DecideSecondRoundWinnerFirstQuestion(_answersABCD, question, attackerID, otherID, _attackedRegion);
 		}
 
 		/// <summary>
@@ -579,8 +560,6 @@ namespace server
 		{
 			//finalanswers_correctANS_P1ANS_P2ANS
 			string correct = question.Correct;
-			string p1Answer = answers[0];
-			string p2Answer = answers[1];
 
 			string message = MessageController.EncodeMessageIntoJSONWithPrefix("finalanswersABCD", p1ans: answers[0], p2ans: answers[1], correct: correct);
 
@@ -691,36 +670,9 @@ namespace server
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
 
-			string responseData;
-			Int32 bytes;
-			Byte[] data = new byte[Constants.DEFAULT_BUFFER_SIZE];
+			ReceiveAndProcessMessageFromAllClients();
 
-			int[] answers = new int[Constants.MAX_PLAYERS];
-			int[] times = new int[Constants.MAX_PLAYERS];
-
-			int i = 0;
-
-			foreach (TcpClient client in _acceptedClients)
-			{
-				try
-				{
-					NetworkStream stream = client.GetStream();
-					bytes = stream.Read(data, 0, data.Length);
-					responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-					Console.WriteLine(Constants.SERVER_RECEIVE, responseData);
-					string[] splitData = responseData.Split(Constants.GLOBAL_DELIMITER);
-					answers[i] = Int32.Parse(splitData[2]);
-					times[i] = Int32.Parse(splitData[3]);
-					i++;
-				}
-				catch (Exception)
-				{
-					this._playerDisconnected = true;
-					continue;
-				}
-			}
-
-			DecideNumberQuestionWinnerAndInform(answers, times, question, SecondRoundWin, attackedRegion, defenderID, attackerID);
+			DecideNumberQuestionWinnerAndInform(_answers, _times, question, SecondRoundWin, attackedRegion, defenderID, attackerID);
 		}
 
 		/// <summary>
@@ -753,29 +705,6 @@ namespace server
 			{
 				SecondRoundDefenderWin((int)defenderID);
 			}
-		}
-
-		/// <summary>
-		/// Method parsing the picked region in the second round from the attacker.
-		/// </summary>
-		/// <param name="data">Array with data from the clients.</param>
-		/// <returns>Region chosen by a client to be attacked.</returns>
-		private Constants.Region? SecondRoundGetPickedRegion(string[] data)
-		{
-			//Received: picked_1_CZST
-			foreach (string current in data)
-			{
-				string[] splitData = current.Split(Constants.GLOBAL_DELIMITER);
-				if (splitData[2] != Constants.INVALID_CLIENT_ID.ToString())
-				{
-					if (Enum.TryParse(splitData[2], out Constants.Region reg))
-					{
-						return reg;
-					}
-				}
-			}
-
-			return null; //WILL NOT HAPPEN!
 		}
 
 		/// <summary>
