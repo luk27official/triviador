@@ -99,12 +99,19 @@ namespace client
             ReceiveAndProcessMessage();
         }
 
+        /// <summary>
+        /// Method which receives some message from the server calls a method to process it.
+        /// </summary>
         private void ReceiveAndProcessMessage()
         {
             string message = MessageController.ReceiveMessage(this._networkStream);
             ProcessMessage(message);
         }
 
+        /// <summary>
+        /// Method which processes the message based on the message type.
+        /// </summary>
+        /// <param name="message">Message from the server.</param>
         private void ProcessMessage(string message)
         {
             BasicMessage? msgFromJson = JsonConvert.DeserializeObject<BasicMessage>(message);
@@ -116,7 +123,6 @@ namespace client
                     ClientCommon.HandleEnemyDisconnect();
                     break;
                 case "finalanswersABCD":
-                    //handle final answers abcd
                     if(msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null)
                     {
                         ShowFinalAnswers(msgFromJson.AnswerDetails.Answers[0], msgFromJson.AnswerDetails.Answers[1], msgFromJson.AnswerDetails.Correct);

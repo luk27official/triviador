@@ -16,25 +16,20 @@ namespace server
 	/// </summary>
 	internal class Server
 	{
-		bool _running;
-		TcpListener _server;
-		TcpClient[] _acceptedClients;
-		int _acceptedClientsIndex;							//holds the number of already connected people
-		GameInformation _gameInformation;
-		List<QuestionABCD> _questionsABCDWithAnswers;       //holds all of the questions with options
-		List<QuestionNumeric> _questionsNumericWithAnswers; //holds all of the numeric questions
+		private bool _running;
+		private TcpListener _server;
+		private TcpClient[] _acceptedClients;
+		private int _acceptedClientsIndex;                          //holds the number of already connected people
+		private GameInformation _gameInformation;
+		private List<QuestionABCD> _questionsABCDWithAnswers;       //holds all of the questions with options
+		private List<QuestionNumeric> _questionsNumericWithAnswers; //holds all of the numeric questions
 
 		private Constants.GameStatus _gameStatus;
-		int[] _answers;
-		int[] _times;
-		string[] _answersABCD;
-		Constants.Region _attackedRegion;
-
-		/*
-		string[] _questionsABCDWithAnswers;			//holds all of the questions with options
-		string[] _questionsNumericWithAnswers;		//holds all of the numeric questions
-		*/
-		bool _playerDisconnected;					//did at least one player disconnect?
+		private int[] _answers;
+		private int[] _times;
+		private string[] _answersABCD;
+		private Constants.Region _attackedRegion;
+		private bool _playerDisconnected;					//did at least one player disconnect?
 
 		public Server()
 		{
@@ -129,6 +124,9 @@ namespace server
             }
 		}
 
+		/// <summary>
+		/// Method which receives some message from the server calls a method to process it.
+		/// </summary>
 		private void ReceiveAndProcessMessageFromAllClients()
         {
 			int i = 0;
@@ -163,12 +161,16 @@ namespace server
             }
 		}
 
+		/// <summary>
+		/// Method which processes the message based on the message type.
+		/// </summary>
+		/// <param name="message">Message from the server.</param>
+		/// <param name="clientIndex">Message sender's identifier.</param>
 		private void ProcessMessage(string message, int clientIndex)
         {
 			BasicMessage? msgFromJson = JsonConvert.DeserializeObject<BasicMessage>(message);
 			if (msgFromJson == null) return;
 
-			//handle message
 			switch (msgFromJson.Type)
             {
 				case "answerNumeric":
@@ -247,7 +249,7 @@ namespace server
 				if (_acceptedClientsIndex == 0) //inform the first user about their connection
 				{
 					NetworkStream stream = currentClient.GetStream();
-					string message = Constants.P1CONNECTED;
+					string message = MessageController.EncodeMessageIntoJSONWithPrefix("connect1");
 					byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
 
 					stream.Write(data, 0, data.Length);
@@ -268,7 +270,7 @@ namespace server
 		/// </summary>
 		private void InformPlayersAboutConnection() {
 
-			SendMessageToAllClients(Constants.P2CONNECTED);
+			SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("connect2"));
 
 			Thread.Sleep(Constants.DELAY_FASTUPDATE_MS);
 
@@ -340,12 +342,10 @@ namespace server
 			if (this._playerDisconnected)
 			{
 				SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("disconnect", playerID: "-1"));
-				//SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + Constants.INVALID_CLIENT_ID);
 			}
 			else
 			{
 				SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("gameupdate", gameInformation: _gameInformation));
-				//SendMessageToAllClients(_gameInformation.EncodeInformationToString());
 			}
         }
 
@@ -419,10 +419,6 @@ namespace server
 			//we dont need the reg, x and y here, its there just for compatibility with a delegate
 
 			//send the players the info about their answers
-			/*string message = Constants.PREFIX_FINALANSWERS + answers[0] + Constants.GLOBAL_DELIMITER + answers[1] + Constants.GLOBAL_DELIMITER + 
-				times[0] + Constants.GLOBAL_DELIMITER + times[1] + Constants.GLOBAL_DELIMITER + rightAnswer + Constants.GLOBAL_DELIMITER + winnerID;
-			SendMessageToAllClients(message);
-			*/
 			string message = MessageController.EncodeMessageIntoJSONWithPrefix("finalanswers", playerID: winnerID.ToString(), p1ans: answers[0].ToString(),
 				p2ans: answers[1].ToString(), p1time: times[0].ToString(), p2time: times[1].ToString(), correct: rightAnswer.ToString());
 			SendMessageToAllClients(message);
@@ -480,17 +476,16 @@ namespace server
 				{
 					//one of the players disconnected
 					this._playerDisconnected = true;
-					if (!message.StartsWith(Constants.PREFIX_DISCONNECTED))
+					if (!message.Contains("\"disconnect\""))
                     {
 						SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("disconnect", playerID: "-1"));
-						//SendMessageToAllClients(Constants.PREFIX_DISCONNECTED + Constants.INVALID_CLIENT_ID);
 						return;
 					}
 					continue;
 				}
 			}
 
-			if(message.StartsWith(Constants.PREFIX_DISCONNECTED))
+			if(message.Contains("\"disconnect\""))
             {
 				throw new Constants.DisconnectException();
             }
@@ -513,7 +508,6 @@ namespace server
 			ReceiveAndProcessMessageFromAllClients();
 
 			string attackMessage = MessageController.EncodeMessageIntoJSONWithPrefix("attack", region: _attackedRegion);
-			//string attackMessage = Constants.PREFIX_ATTACK + attackedRegion.ToString();
 			SendMessageToAllClients(attackMessage);
 			return _attackedRegion;
 		}

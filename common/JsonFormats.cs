@@ -7,54 +7,11 @@ using Newtonsoft.Json;
 
 namespace Commons
 {
+    /// <summary>
+    /// This class provides the JSON format for basic messages.
+    /// </summary>
     public class BasicMessage
     {
-        /*
-        {
-            "type": string
-            "playerid": string|null
-        }
-        */
-        //used for game over, disconnect, attack, picked, pickregion, assign
-
-        /*
-		public const string PREFIX_ASSIGN = "assign_";
-        assign_p1
-
-		public const string PREFIX_PICKREGION = "pickregion_";
-        pickregion_2
-
-		public const string PREFIX_PICKED = "picked_";
-        picked_1_CZST
-
-		public const string PREFIX_ATTACK = "attack_";
-        attack_CZST
-
-		public const string PREFIX_DISCONNECTED = "disconnected_";
-		disconnected_-1
-        
-        public const string PREFIX_GAMEOVER = "gameover_";
-        gameover_2
-
-        public const string P1CONNECTED = "You have been connected, waiting for player 2.";
-		public const string P2CONNECTED = "Both players have connected, game starting soon.";
-
-        public const string PREFIX_GAMEUPDATE = "gameupdate_";
-        gameupdate_...gameInformation
-
-        public const string PREFIX_QUESTIONABCD = "questionAW_";
-        questionAW_...question
-
-        public const string PREFIX_QUESTIONNUMBER = "questionNUM_";
-        questionNUM_...question
-
-        public const string PREFIX_ANSWER = "answer_";
-        answer_1_tip_time
-
-        public const string PREFIX_FINALANSWERS = "finalanswers_";
-        finalanswers_p1ans_p2ans_p1time_p2time_correct_playerID
-        */
-
         [JsonProperty("type")]
         public string Type;
 
@@ -77,6 +34,9 @@ namespace Commons
         public AnswerDetails? AnswerDetails;
     }
 
+    /// <summary>
+    /// This class provides the JSON format for details about the answer used in messages.
+    /// </summary>
     public class AnswerDetails
     {
         [JsonProperty("correct")]
@@ -89,6 +49,9 @@ namespace Commons
         public string?[]? Answers;
     }
 
+    /// <summary>
+    /// This class provides the JSON format for question with 4 options.
+    /// </summary>
     public class QuestionABCD
     {
         [JsonProperty("content")]
@@ -101,6 +64,9 @@ namespace Commons
         public string[] Answers;
     }
 
+    /// <summary>
+    /// This class provides the JSON format for numeric questions.
+    /// </summary>
     public class QuestionNumeric
     {
         [JsonProperty("content")]

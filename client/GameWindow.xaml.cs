@@ -109,8 +109,8 @@ namespace client
     {
         private NetworkStream _stream;
         private GameInformation _gameInformation;
-        private Window _questionWindow;             //currently opened window
-        private System.Windows.Shapes.Path[] _gameBoardPaths;             //used for clicking/coloring the regions
+        private Window _questionWindow;                                     //currently opened window
+        private System.Windows.Shapes.Path[] _gameBoardPaths;               //used for clicking/coloring the regions
 
         private bool _pickingRegion;                //are we picking the region right now?
         private bool _anotherWindowInFocus;
@@ -200,6 +200,10 @@ namespace client
             this._anotherWindowInFocus = false;
         }
 
+        /// <summary>
+        /// Method which processes the message based on the message type.
+        /// </summary>
+        /// <param name="message">Message from the server.</param>
         private void ProcessMessage(string message)
         {
             // here we should deserialize the message into json object
@@ -230,7 +234,6 @@ namespace client
                     }
                     break;
                 case "questionnumeric":
-                    //handle numeric question
                     if(msgFromJson.QuestionNumeric != null)
                     {
                         this._anotherWindowInFocus = true;
@@ -252,7 +255,6 @@ namespace client
                     }
                     break;
                 case "pickregion":
-                    //handle pick region
                     if(msgFromJson.PlayerID != null)
                     {
                         App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.PLAYER_PICK_REGION, msgFromJson.PlayerID); });
@@ -267,7 +269,6 @@ namespace client
                     }
                     break;
                 case "attack":
-                    //handle attack
                     if(msgFromJson.Region != null)
                     {
                         App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.REGION_UNDER_ATTACK, msgFromJson.Region); });
@@ -275,7 +276,6 @@ namespace client
                     }
                     break;
                 case "questionabcd":
-                    //handle question abcd
                     if (msgFromJson.QuestionABCD != null)
                     {
                         this._anotherWindowInFocus = true;
@@ -297,7 +297,6 @@ namespace client
                     }
                     break;
                 case "gameover":
-                    //handle game over
                     if(msgFromJson.PlayerID != null)
                     {
                         GameOver(msgFromJson.PlayerID);
@@ -308,10 +307,12 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// Method which receives some message from the server calls a method to process it.
+        /// </summary>
         private void ReceiveAndProcessMessage()
         {
             string message = MessageController.ReceiveMessage(_stream);
-            Debug.WriteLine(message);
             ProcessMessage(message);
         }
 
@@ -361,7 +362,7 @@ namespace client
             ReceiveAndProcessMessage();
 
             //firstly update the board
-            this.timerCounter = Constants.DELAY_CLIENT_PICK / 1000;
+            this.timerCounter = Constants.DELAY_CLIENT_PICK / 1000; //divided by one second
             App.Current.Dispatcher.Invoke((Action)delegate { this.timeleftLabel.Content = String.Format(Constants.CLIENT_TIME_LEFT, this.timerCounter); });
 
             this.timer = new System.Timers.Timer(995); //basically 1s but to ensure it gets to zero it is a bit less
@@ -424,7 +425,7 @@ namespace client
         {
             ReceiveAndProcessMessage();
 
-            this.timerCounter = Constants.DELAY_CLIENT_PICK / 1000;
+            this.timerCounter = Constants.DELAY_CLIENT_PICK / 1000; //divided by one second
             App.Current.Dispatcher.Invoke((Action)delegate { this.timeleftLabel.Content = String.Format(Constants.CLIENT_TIME_LEFT, this.timerCounter); });
 
             this.timer = new System.Timers.Timer(995); //basically 1s but to ensure it gets to zero it is a bit less

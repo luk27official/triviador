@@ -89,6 +89,9 @@ namespace client
             }
         }
 
+        /// <summary>
+        /// Method which receives some message from the server calls a method to process it.
+        /// </summary>
         private void ReceiveAndProcessMessage()
         {
             string message = MessageController.ReceiveMessage(this._networkStream);
@@ -96,6 +99,10 @@ namespace client
             ProcessMessage(message);
         }
 
+        /// <summary>
+        /// Method which processes the message based on the message type.
+        /// </summary>
+        /// <param name="message">Message from the server.</param>
         private void ProcessMessage(string message)
         {
             BasicMessage? msgFromJson = JsonConvert.DeserializeObject<BasicMessage>(message);
@@ -142,9 +149,13 @@ namespace client
 
         /// <summary>
         /// Updates the window with the answer and player information.
-        /// TODO: edit the params...
         /// </summary>
-        /// <param name="data">Response data containing the answers and information about players.</param>
+        /// <param name="p1ans">Player 1 answer.</param>
+        /// <param name="p2ans">Player 2 answer.</param>
+        /// <param name="p1time">Player 1 answer time.</param>
+        /// <param name="p2time">Player 2 answer time.</param>
+        /// <param name="winnerID">Winner client identifier.</param>
+        /// <param name="correctAns">Correct answer.</param>
         private void ShowFinalAnswers(string? p1ans, string? p2ans, string? p1time, string? p2time, string? winnerID, string? correctAns)
         {
             App.Current.Dispatcher.Invoke((Action)delegate { this.p1label.Content = String.Format(Constants.QUESTION_RESULT, "1", p1ans, p1time); });
@@ -182,8 +193,6 @@ namespace client
             string message = "";
             if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p1ans: ans.ToString(), p1time: _stopwatch.ElapsedMilliseconds.ToString());
             else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p2ans: ans.ToString(), p2time: _stopwatch.ElapsedMilliseconds.ToString());
-
-            //string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + ans.ToString() + Constants.GLOBAL_DELIMITER + _stopwatch.ElapsedMilliseconds;
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _networkStream.Write(msg, 0, msg.Length);
         }
