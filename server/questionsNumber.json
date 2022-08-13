@@ -6,5 +6,61 @@
   {
     "content": "How many emirates are there in the UAE?",
     "correct": "7"
+  },
+  {
+    "content": "How many micrograms of niacine does 1 Monster Energy can contain?",
+    "correct": "43"
+  },
+  {
+    "content": "How many teams are there in the Premier League (2022)?",
+    "correct": "20"
+  },
+  {
+    "content": "What year was John Lennon born?",
+    "correct": "1940"
+  },
+  {
+    "content": "How many forward gears are there in today's Formula 1 cars?",
+    "correct": "8"
+  },
+  {
+    "content": "How many centimeters are 10 inches?",
+    "correct": "25"
+  },
+  {
+    "content": "At which temperature (in Kelvins) does the critical point of water occur?",
+    "correct": "647"
+  },
+  {
+    "content": "What year was NATO founded?",
+    "correct": "1949"
+  },
+  {
+    "content": "When did the Fall of the Berlin Wall happen?",
+    "correct": "1989"
+  },
+  {
+    "content": "What is the base price of iPhone 12 64GB (in USD)?",
+    "correct": "699"
+  },
+  {
+    "content": "What jersey number does Cristiano Ronaldo wear?",
+    "correct": "7"
+  },
+  {
+    "content": "How many colors are there on the Mauritius' flag?",
+    "correct": "4"
+  },
+  {
+    "content": "How many children does Kylie Jenner have? (2022)",
+    "correct": "2"
+  },
+  {
+    "content": "How many students were enrolled to Shalom Catholic College as of 2018?",
+    "correct": "1380"
+  },
+  {
+    "content": "Which year did Travis Scott release his album ASTROWORLD?",
+    "correct": "2018"
   }
 ]

@@ -18,5 +18,155 @@
       "sudo",
       "echo"
     ]
+  },
+  {
+    "content": "Which of these companies do not belong to Google?",
+    "correct": "Instagram",
+    "answers": [
+      "Instagram",
+      "Gmail",
+      "YouTube",
+      "reCAPTCHA"
+    ]
+  },
+  {
+    "content": "Choux and filo are both types of what?",
+    "correct": "Pastry",
+    "answers": [
+      "Pastry",
+      "Dogs",
+      "Wine",
+      "Music"
+    ]
+  },
+  {
+    "content": "Which of these streamers has the highest average viewers (as of 7/2022)?",
+    "correct": "xQc",
+    "answers": [
+      "xQc",
+      "shroud",
+      "Asmongold",
+      "Amouranth"
+    ]
+  },
+  {
+    "content": "Which chemical element does the letter K represent?",
+    "correct": "Potassium",
+    "answers": [
+      "Potassium",
+      "Antimone",
+      "Calcium",
+      "Krypton"
+    ]
+  },
+  {
+    "content": "Which of these materials in Minecraft is the strongest?",
+    "correct": "Netherite",
+    "answers": [
+      "Netherite",
+      "Gold",
+      "Iron",
+      "Diamond"
+    ]
+  },
+  {
+    "content": "Which of these artists is not a music group?",
+    "correct": "Yung Bans",
+    "answers": [
+      "Yung Bans",
+      "Rae Sremmurd",
+      "OutKast",
+      "blink-182"
+    ]
+  },
+  {
+    "content": "The Gobi desert is in Mongolia and which other country?",
+    "correct": "China",
+    "answers": [
+      "China",
+      "Kyrgyzstan",
+      "Pakistan",
+      "Kazachstan"
+    ]
+  },
+  {
+    "content": "In the first retail transaction with Bitcoin, what did the person buy?",
+    "correct": "2 pizzas",
+    "answers": [
+      "2 pizzas",
+      "A car",
+      "A book",
+      "A pack of chewing gums"
+    ]
+  },
+  {
+    "content": "Which of these is not an official language of Belgium?",
+    "correct": "English",
+    "answers": [
+      "English",
+      "Dutch",
+      "German",
+      "French"
+    ]
+  },
+  {
+    "content": "What type of animal is a flying fox?",
+    "correct": "Mammal",
+    "answers": [
+      "Mammal",
+      "Bird",
+      "Amphibian",
+      "Reptile"
+    ]
+  },
+  {
+    "content": "Which member of Linkin Park is deceased?",
+    "correct": "Chester Bennington",
+    "answers": [
+      "Chester Bennington",
+      "Rob Bourdon",
+      "Brad Delson",
+      "Mike Shinoda"
+    ]
+  },
+  {
+    "content": "Which of these cities is located the northest?",
+    "correct": "Prague",
+    "answers": [
+      "Prague",
+      "Paris",
+      "Luxembourg",
+      "Tokyo"
+    ]
+  },
+  {
+    "content": "Who was the German Minister of Public Enlightenment and Propaganda during WW2?",
+    "correct": "Joseph Goebbels",
+    "answers": [
+      "Joseph Goebbels",
+      "Erwin Rommel",
+      "Heinrich Himmler",
+      "Hermann Goring"
+    ]
+  },
+  {
+    "content": "Who wrote the book 'A Farewell to Arms'?",
+    "correct": "Ernest Hemingway",
+    "answers": [
+      "Ernest Hemingway",
+      "Erich Maria Remarque",
+      "Benjamin Franklin",
+      "T. S. Eliot"
+    ]
+  },
+  {
+    "content": "Who painted 'The Scream'?",
+    "correct": "Edvard Munch",
+    "answers": [
+      "Edvard Munch",
+      "Claude Monet",
+      "Pablo Picasso",
+      "Vincent van Gogh"
+    ]
   }
 ]
