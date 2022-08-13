@@ -55,9 +55,66 @@ The administrator may use the defaults, but it is certainly possible to add new 
 
 After this the server may be run. The usage is very simple - just run the executable. The server will do everything automatically.
 
-Log example below:
+The server communicates with both clients via simple messages in the JSON format.
+Log message example below:
 
-<img src="images/server_log.png" />
+```json
+00000726{
+  "type": "gameUpdate",
+  "playerid": null,
+  "region": null,
+  "gameinformation": {
+    "Points": [
+      2600,
+      2000
+    ],
+    "Regions": [
+      [
+        4,
+        12,
+        9,
+        0,
+        3,
+        2,
+        5,
+        1
+      ],
+      [
+        7,
+        11,
+        10,
+        6,
+        8,
+        13
+      ]
+    ],
+    "BaseHealths": [
+      3,
+      3
+    ],
+    "Bases": [
+      4,
+      7
+    ],
+    "HighValueRegions": [
+      1
+    ]
+  },
+  "questionabcd": null,
+  "questionnumeric": null,
+  "answerdetails": {
+    "correct": null,
+    "times": [
+      null,
+      null
+    ],
+    "answers": [
+      null,
+      null
+    ]
+  }
+}
+```
 
 ### Programmer documentation
 All used methods are documented in the code.
@@ -71,6 +128,8 @@ This project includes all common classes and method used by the class and the se
 File `Constants.cs` contains all of the messages exchanged between the server/client and delays, round times and other constants as well.
 It also contains information about the regions and their neigbors.
 File `GameInformation.cs` contains definition of the game data which is exchanged between the server and clients.
+File `JsonFormats.cs` contains JSON format definition for messages exchanged between the server and clients.
+File `MessageController.cs` contains logic used for receiving messages and converting game data to JSON.
 
 2. Server
    
@@ -100,6 +159,10 @@ This means that the code inside had to be executed from the main thread (to upda
 `common/Constants.cs` - contains all common data
 
 `common/GameInformation.cs` - contains definitons for all common game information
+
+`common/JsonFormats.cs` - contains JSON format definition
+
+`common/MessageController.cs` - contains logic used for receiving messages and encoding game data to JSON
 
 `server/Program.cs` - provides an entrypoint for the server
 
