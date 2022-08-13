@@ -89,8 +89,8 @@ namespace client
             if (!_questionAnswered) //make sure we sent something
             {
                 string message = "";
-                if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerABCD", p1ans: "0");
-                else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerABCD", p2ans: "0"); //no answer -> send zero
+                if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_ABCD_ANSWER, p1ans: "0");
+                else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_ABCD_ANSWER, p2ans: "0"); //no answer -> send zero
                 byte[] msg = Encoding.ASCII.GetBytes(message);
                 _networkStream.Write(msg, 0, msg.Length);
             }
@@ -119,10 +119,10 @@ namespace client
 
             switch (msgFromJson.Type)
             {
-                case "disconnect":
+                case Constants.MESSAGE_DISCONNECT:
                     ClientCommon.HandleEnemyDisconnect();
                     break;
-                case "finalanswersABCD":
+                case Constants.MESSAGE_FINAL_ANSWERS_ABCD:
                     if(msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null)
                     {
                         ShowFinalAnswers(msgFromJson.AnswerDetails.Answers[0], msgFromJson.AnswerDetails.Answers[1], msgFromJson.AnswerDetails.Correct);
@@ -225,8 +225,8 @@ namespace client
             }
             
             string message = "";
-            if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerABCD", p1ans: answer);
-            else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerABCD", p2ans: answer);
+            if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_ABCD_ANSWER, p1ans: answer);
+            else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_ABCD_ANSWER, p2ans: answer);
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _networkStream.Write(msg, 0, msg.Length);
         }

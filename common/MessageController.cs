@@ -58,8 +58,8 @@ namespace Commons
             };
 
             string converted = JsonConvert.SerializeObject(message, Formatting.Indented);
-            int finalLength = FIXED_PREFIX_SIZE + converted.Length; //fixed format of 8 bytes
-            string finalMessage = converted.Insert(0, String.Format("{0:D8}", finalLength)); 
+            int finalLength = FIXED_PREFIX_SIZE + converted.Length;
+            string finalMessage = converted.Insert(0, String.Format("{0:D8}", finalLength)); //fixed format of 8 bytes
 
             return finalMessage;
         }

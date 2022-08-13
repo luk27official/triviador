@@ -73,15 +73,19 @@ namespace client
         public static Brush CreateHighValueRegionBrush(int id)
         {
             int size = 15;
-            VisualBrush vb = new();
-            vb.TileMode = TileMode.Tile;
-            vb.Viewport = new Rect(0, 0, size, size);
-            vb.ViewboxUnits = BrushMappingMode.Absolute;
-            vb.Viewbox = new Rect(0, 0, size, size);
-            vb.ViewportUnits = BrushMappingMode.Absolute;
+            VisualBrush vb = new()
+            {
+                TileMode = TileMode.Tile,
+                Viewport = new Rect(0, 0, size, size),
+                ViewboxUnits = BrushMappingMode.Absolute,
+                Viewbox = new Rect(0, 0, size, size),
+                ViewportUnits = BrushMappingMode.Absolute
+            };
 
-            Grid g = new();
-            g.Background = BrushesAndColors.REGION_BRUSHES[id];
+            Grid g = new()
+            {
+                Background = BrushesAndColors.REGION_BRUSHES[id]
+            };
 
             System.Windows.Shapes.Path p1 = new();
 
@@ -213,17 +217,17 @@ namespace client
 
             switch(msgFromJson.Type)
             {
-                case "assign":
+                case Constants.MESSAGE_ASSIGN:
                     if(msgFromJson.PlayerID != null)
                     {
                         this._clientID = Int32.Parse(msgFromJson.PlayerID);
                         this.playerIDLabel.Content = String.Format(Constants.PLAYER_ID_LABEL, msgFromJson.PlayerID);
                     }
                     break;
-                case "disconnect":
+                case Constants.MESSAGE_DISCONNECT:
                     ClientCommon.HandleEnemyDisconnect();
                     break;
-                case "gameupdate":
+                case Constants.MESSAGE_GAME_UPDATE:
                     if(msgFromJson.GameInformation != null)
                     {
                         this._gameInformation = msgFromJson.GameInformation;
@@ -233,7 +237,7 @@ namespace client
                         });
                     }
                     break;
-                case "questionnumeric":
+                case Constants.MESSAGE_NUMERIC_QUESTION:
                     if(msgFromJson.QuestionNumeric != null)
                     {
                         this._anotherWindowInFocus = true;
@@ -254,7 +258,7 @@ namespace client
                         }
                     }
                     break;
-                case "pickregion":
+                case Constants.MESSAGE_PICK_REGION:
                     if(msgFromJson.PlayerID != null)
                     {
                         App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.PLAYER_PICK_REGION, msgFromJson.PlayerID); });
@@ -268,14 +272,14 @@ namespace client
                         }
                     }
                     break;
-                case "attack":
+                case Constants.MESSAGE_ATTACK:
                     if(msgFromJson.Region != null)
                     {
                         App.Current.Dispatcher.Invoke((Action)delegate { this.gameStatusTextBox.Text = String.Format(Constants.REGION_UNDER_ATTACK, msgFromJson.Region); });
                         App.Current.Dispatcher.Invoke((Action)delegate { this._gameBoardPaths[(int)msgFromJson.Region].Fill = BrushesAndColors.ATTACKED_REGION_BRUSH; });
                     }
                     break;
-                case "questionabcd":
+                case Constants.MESSAGE_ABCD_QUESTION:
                     if (msgFromJson.QuestionABCD != null)
                     {
                         this._anotherWindowInFocus = true;
@@ -296,7 +300,7 @@ namespace client
                         }
                     }
                     break;
-                case "gameover":
+                case Constants.MESSAGE_GAME_OVER:
                     if(msgFromJson.PlayerID != null)
                     {
                         GameOver(msgFromJson.PlayerID);
@@ -449,7 +453,6 @@ namespace client
                 {
                     reg = Constants.PickRandomEnemyRegion(_gameInformation.Regions, _clientID - 1, false);
                 }
-                //Debug.WriteLine(reg);
                 SendPickedRegion(reg);
             }
         }
@@ -577,7 +580,7 @@ namespace client
         /// <param name="region">Picked region.</param>
         private void SendPickedRegion(Constants.Region? region)
         {
-            string message = MessageController.EncodeMessageIntoJSONWithPrefix("picked", playerID: _clientID.ToString(), region: region);
+            string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_PICKED_REGION, playerID: _clientID.ToString(), region: region);
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _stream.Write(msg, 0, msg.Length);
         }

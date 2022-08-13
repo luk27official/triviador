@@ -77,7 +77,7 @@ namespace client
         /// <param name="e">Event arguments.</param>
         private void ChangeTimerLabel(object? source, ElapsedEventArgs e)
         {
-            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format("Time left: {0} seconds", (_millisecondsMaximum - _millisecondsElapsed)/100); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format(Constants.TIMELEFT, (_millisecondsMaximum - _millisecondsElapsed)/100); });
 
             _millisecondsElapsed++;
 
@@ -110,11 +110,10 @@ namespace client
 
             switch (msgFromJson.Type)
             {
-                case "disconnect":
+                case Constants.MESSAGE_DISCONNECT:
                     ClientCommon.HandleEnemyDisconnect();
                     break;
-                case "finalanswers":
-                    //handle final answers numeric
+                case Constants.MESSAGE_FINAL_ANSWERS_NUMERIC:
                     if(msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null && msgFromJson.AnswerDetails.Times != null)
                     {
                         ShowFinalAnswers(msgFromJson.AnswerDetails.Answers[0], msgFromJson.AnswerDetails.Answers[1], msgFromJson.AnswerDetails.Times[0], msgFromJson.AnswerDetails.Times[1], msgFromJson.PlayerID, msgFromJson.AnswerDetails.Correct);
@@ -137,8 +136,8 @@ namespace client
             {
                 _stopwatch.Stop();
                 string message = "";
-                if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p1ans: "0", p1time: _stopwatch.ElapsedMilliseconds.ToString());
-                else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p2ans: "0", p2time: _stopwatch.ElapsedMilliseconds.ToString());
+                if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_ANSWER, p1ans: "0", p1time: _stopwatch.ElapsedMilliseconds.ToString());
+                else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_ANSWER, p2ans: "0", p2time: _stopwatch.ElapsedMilliseconds.ToString());
                 byte[] msg = Encoding.ASCII.GetBytes(message);
                 _networkStream.Write(msg, 0, msg.Length);
             }
@@ -191,8 +190,8 @@ namespace client
                 ans = 0; //if entered invalid value pass an 0
             }
             string message = "";
-            if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p1ans: ans.ToString(), p1time: _stopwatch.ElapsedMilliseconds.ToString());
-            else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix("answerNumeric", p2ans: ans.ToString(), p2time: _stopwatch.ElapsedMilliseconds.ToString());
+            if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_ANSWER, p1ans: ans.ToString(), p1time: _stopwatch.ElapsedMilliseconds.ToString());
+            else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_ANSWER, p2ans: ans.ToString(), p2time: _stopwatch.ElapsedMilliseconds.ToString());
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _networkStream.Write(msg, 0, msg.Length);
         }

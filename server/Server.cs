@@ -21,8 +21,8 @@ namespace server
 		private TcpClient[] _acceptedClients;
 		private int _acceptedClientsIndex;                          //holds the number of already connected people
 		private GameInformation _gameInformation;
-		private List<QuestionABCD> _questionsABCDWithAnswers;       //holds all of the questions with options
-		private List<QuestionNumeric> _questionsNumericWithAnswers; //holds all of the numeric questions
+		private List<QuestionABCD>? _questionsABCDWithAnswers;       //holds all of the questions with options
+		private List<QuestionNumeric>? _questionsNumericWithAnswers; //holds all of the numeric questions
 
 		private Constants.GameStatus _gameStatus;
 		private int[] _answers;
@@ -173,7 +173,7 @@ namespace server
 
 			switch (msgFromJson.Type)
             {
-				case "answerNumeric":
+				case Constants.MESSAGE_NUMERIC_ANSWER:
 					if (msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null && msgFromJson.AnswerDetails.Times != null)
 					{
 						if (Int32.TryParse(msgFromJson.AnswerDetails.Answers[clientIndex], out int parsedAns))
@@ -186,16 +186,19 @@ namespace server
 						}
 					}
 					break;
-				case "answerABCD":
+				case Constants.MESSAGE_ABCD_ANSWER:
 					if(msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null)
                     {
                         if (msgFromJson.AnswerDetails.Answers[clientIndex] != null)
                         {
+							//don't know why is this marked as warning as the null value is checked in the if...
+							#pragma warning disable CS8601 // Possible null reference assignment.
 							_answersABCD[clientIndex] = msgFromJson.AnswerDetails.Answers[clientIndex];
+							#pragma warning restore CS8601 // Possible null reference assignment.
                         }
                     }
 					break;
-				case "picked":
+				case Constants.MESSAGE_PICKED_REGION:
 					if(this._gameStatus == Constants.GameStatus.FirstRound)
                     {
 						if (msgFromJson.PlayerID != null && msgFromJson.Region != null)
@@ -249,7 +252,7 @@ namespace server
 				if (_acceptedClientsIndex == 0) //inform the first user about their connection
 				{
 					NetworkStream stream = currentClient.GetStream();
-					string message = MessageController.EncodeMessageIntoJSONWithPrefix("connect1");
+					string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_CONNECTED_FIRST_PLAYER);
 					byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
 
 					stream.Write(data, 0, data.Length);
@@ -270,7 +273,7 @@ namespace server
 		/// </summary>
 		private void InformPlayersAboutConnection() {
 
-			SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("connect2"));
+			SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_CONNECTED_SECOND_PLAYER));
 
 			Thread.Sleep(Constants.DELAY_FASTUPDATE_MS);
 
@@ -287,8 +290,8 @@ namespace server
         {
 			int i = 0;
 			string[] msgs = new string[Constants.MAX_PLAYERS];
-			msgs[0] = MessageController.EncodeMessageIntoJSONWithPrefix("assign", "1");
-			msgs[1] = MessageController.EncodeMessageIntoJSONWithPrefix("assign", "2");
+			msgs[0] = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_ASSIGN, "1");
+			msgs[1] = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_ASSIGN, "2");
 
 			foreach (TcpClient client in _acceptedClients)
 			{
@@ -341,11 +344,11 @@ namespace server
 			//basically just check if someone disconnected... if yes, inform the client
 			if (this._playerDisconnected)
 			{
-				SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("disconnect", playerID: "-1"));
+				SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_DISCONNECT, playerID: Constants.INVALID_CLIENT_ID.ToString()));
 			}
 			else
 			{
-				SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("gameupdate", gameInformation: _gameInformation));
+				SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_GAME_UPDATE, gameInformation: _gameInformation));
 			}
         }
 
@@ -393,7 +396,7 @@ namespace server
         {
 			QuestionNumeric question = PickRandomNumericQuestion();
 
-			string message = MessageController.EncodeMessageIntoJSONWithPrefix("questionnumeric", questionNumeric: question);
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_QUESTION, questionNumeric: question);
 			SendMessageToAllClients(message);
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
@@ -419,7 +422,7 @@ namespace server
 			//we dont need the reg, x and y here, its there just for compatibility with a delegate
 
 			//send the players the info about their answers
-			string message = MessageController.EncodeMessageIntoJSONWithPrefix("finalanswers", playerID: winnerID.ToString(), p1ans: answers[0].ToString(),
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_FINAL_ANSWERS_NUMERIC, playerID: winnerID.ToString(), p1ans: answers[0].ToString(),
 				p2ans: answers[1].ToString(), p1time: times[0].ToString(), p2time: times[1].ToString(), correct: rightAnswer.ToString());
 			SendMessageToAllClients(message);
 
@@ -437,7 +440,7 @@ namespace server
 		private void SendFirstRoundPickAnnouncement(int clientID)
         {
 			//let the winner choose twice and the loser once
-			string message = MessageController.EncodeMessageIntoJSONWithPrefix("pickregion", playerID: clientID.ToString());
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_PICK_REGION, playerID: clientID.ToString());
 			SendMessageToAllClients(message);
 
 			//wait for the picks
@@ -476,16 +479,16 @@ namespace server
 				{
 					//one of the players disconnected
 					this._playerDisconnected = true;
-					if (!message.Contains("\"disconnect\""))
+					if (!message.Contains("\"" + Constants.MESSAGE_DISCONNECT + "\""))
                     {
-						SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix("disconnect", playerID: "-1"));
+						SendMessageToAllClients(MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_DISCONNECT, playerID: Constants.INVALID_CLIENT_ID.ToString()));
 						return;
 					}
 					continue;
 				}
 			}
 
-			if(message.Contains("\"disconnect\""))
+			if(message.Contains("\"" + Constants.MESSAGE_DISCONNECT + "\""))
             {
 				throw new Constants.DisconnectException();
             }
@@ -498,7 +501,7 @@ namespace server
 		/// <returns>An attacked region.</returns>
 		private Constants.Region PicksSecondRound(int attackerID)
 		{
-			string message = MessageController.EncodeMessageIntoJSONWithPrefix("pickregion", playerID: attackerID.ToString());
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_PICK_REGION, playerID: attackerID.ToString());
 			//string message = Constants.PREFIX_PICKREGION + attackerID.ToString();
 			SendMessageToAllClients(message);
 
@@ -507,7 +510,7 @@ namespace server
 
 			ReceiveAndProcessMessageFromAllClients();
 
-			string attackMessage = MessageController.EncodeMessageIntoJSONWithPrefix("attack", region: _attackedRegion);
+			string attackMessage = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_ATTACK, region: _attackedRegion);
 			SendMessageToAllClients(attackMessage);
 			return _attackedRegion;
 		}
@@ -531,7 +534,7 @@ namespace server
 
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 			QuestionABCD question = PickRandomABCDQuestion();
-			string message = MessageController.EncodeMessageIntoJSONWithPrefix("questionabcd", questionABCD: question);
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_ABCD_QUESTION, questionABCD: question);
 			SendMessageToAllClients(message);
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
@@ -555,7 +558,7 @@ namespace server
 			//finalanswers_correctANS_P1ANS_P2ANS
 			string correct = question.Correct;
 
-			string message = MessageController.EncodeMessageIntoJSONWithPrefix("finalanswersABCD", p1ans: answers[0], p2ans: answers[1], correct: correct);
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_FINAL_ANSWERS_ABCD, p1ans: answers[0], p2ans: answers[1], correct: correct);
 
 			SendMessageToAllClients(message);
 
@@ -659,7 +662,7 @@ namespace server
 			Thread.Sleep(Constants.DELAY_BETWEEN_ROUNDS);
 
 			QuestionNumeric question = PickRandomNumericQuestion();
-			string message = MessageController.EncodeMessageIntoJSONWithPrefix("questionnumeric", questionNumeric: question);
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_QUESTION, questionNumeric: question);
 			SendMessageToAllClients(message);
 
 			Thread.Sleep(Constants.DELAY_WAITFORANSWERS);
@@ -684,7 +687,7 @@ namespace server
 		{
 			if (attackedRegion == null || defenderID == null || attackerID == null) return;
 			//send the players the info about their answers
-			string message = MessageController.EncodeMessageIntoJSONWithPrefix("finalanswers", playerID: winnerID.ToString(), p1ans: answers[0].ToString(),
+			string message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_FINAL_ANSWERS_NUMERIC, playerID: winnerID.ToString(), p1ans: answers[0].ToString(),
 				p2ans: answers[1].ToString(), p1time: times[0].ToString(), p2time: times[1].ToString(), correct: rightAnswer.ToString());
 			SendMessageToAllClients(message);
 
@@ -777,7 +780,7 @@ namespace server
 		/// <returns>Game over message for the clients.</returns>
 		private string GameOverMessage(int winnerID)
         {
-			return MessageController.EncodeMessageIntoJSONWithPrefix("gameover", playerID: winnerID.ToString());
+			return MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_GAME_OVER, playerID: winnerID.ToString());
 		}
 
 		/// <summary>
@@ -787,7 +790,11 @@ namespace server
 		private QuestionABCD PickRandomABCDQuestion()
         {
 			Random rnd = new();
-			return this._questionsABCDWithAnswers[rnd.Next(this._questionsABCDWithAnswers.Count)];
+			if(this._questionsABCDWithAnswers != null)
+            {
+				return this._questionsABCDWithAnswers[rnd.Next(this._questionsABCDWithAnswers.Count)];
+			}
+			return new QuestionABCD(); //should never happen
 		}
 
 		/// <summary>
@@ -797,7 +804,11 @@ namespace server
 		private QuestionNumeric PickRandomNumericQuestion()
         {
 			Random rnd = new();
-			return this._questionsNumericWithAnswers[rnd.Next(this._questionsNumericWithAnswers.Count)];
+			if(this._questionsNumericWithAnswers != null)
+            {
+				return this._questionsNumericWithAnswers[rnd.Next(this._questionsNumericWithAnswers.Count)];
+			}
+			return new QuestionNumeric(); //should never happen
 		}
 
 		/// <summary>

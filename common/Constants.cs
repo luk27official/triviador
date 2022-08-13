@@ -208,6 +208,23 @@ namespace Commons
 		public const string P1CONNECTED = "You have been connected, waiting for player 2.";
 		public const string P2CONNECTED = "Both players have connected, game starting soon.";
 
+		public const string MESSAGE_NUMERIC_ANSWER = "answerNumeric";
+		public const string MESSAGE_ABCD_ANSWER = "answerABCD";
+		public const string MESSAGE_PICKED_REGION = "picked";
+		public const string MESSAGE_ASSIGN = "assign";
+		public const string MESSAGE_DISCONNECT = "disconnect";
+		public const string MESSAGE_GAME_UPDATE = "gameUpdate";
+		public const string MESSAGE_NUMERIC_QUESTION = "questionNumeric";
+		public const string MESSAGE_PICK_REGION = "pickRegion";
+		public const string MESSAGE_ATTACK = "attack";
+		public const string MESSAGE_ABCD_QUESTION = "questionABCD";
+		public const string MESSAGE_GAME_OVER = "gameOver";
+		public const string MESSAGE_FINAL_ANSWERS_NUMERIC = "finalAnswersNumeric";
+		public const string MESSAGE_FINAL_ANSWERS_ABCD = "finalanswersABCD";
+		public const string MESSAGE_CONNECTED_FIRST_PLAYER = "connect1";
+		public const string MESSAGE_CONNECTED_SECOND_PLAYER = "connect2";
+
+
 		public const int DELAY_FASTUPDATE_MS = 1000;
 		public const int DELAY_FIRSTROUND_FIRSTQUESTION = 3000;
 		public const int DELAY_WAITFORANSWERS = 13000;

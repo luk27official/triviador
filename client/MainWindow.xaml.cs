@@ -57,14 +57,14 @@ namespace client
 
             switch (msgFromJson.Type)
             {
-                case "disconnect":
+                case Constants.MESSAGE_DISCONNECT:
                     ClientCommon.HandleEnemyDisconnect();
                     break;
-                case "connect1":
+                case Constants.MESSAGE_CONNECTED_FIRST_PLAYER:
                     this.informationTextBox.Text = Constants.P1CONNECTED;
                     Task.Run(() => ReceiveAndProcessMessage());
                     break;
-                case "connect2":
+                case Constants.MESSAGE_CONNECTED_SECOND_PLAYER:
                     App.Current.Dispatcher.Invoke((Action)delegate {
                         this.informationTextBox.Text = Constants.P2CONNECTED;
                         GameWindow gw = new GameWindow(_networkStream);
