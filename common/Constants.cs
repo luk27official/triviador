@@ -208,20 +208,22 @@ namespace Commons
 		public const string P1CONNECTED = "You have been connected, waiting for player 2.";
 		public const string P2CONNECTED = "Both players have connected, game starting soon.";
 
-		public const string P1ASSIGN = "assign_p1";
-		public const string P2ASSIGN = "assign_p2";
+		public const string MESSAGE_NUMERIC_ANSWER = "answerNumeric";
+		public const string MESSAGE_ABCD_ANSWER = "answerABCD";
+		public const string MESSAGE_PICKED_REGION = "picked";
+		public const string MESSAGE_ASSIGN = "assign";
+		public const string MESSAGE_DISCONNECT = "disconnect";
+		public const string MESSAGE_GAME_UPDATE = "gameUpdate";
+		public const string MESSAGE_NUMERIC_QUESTION = "questionNumeric";
+		public const string MESSAGE_PICK_REGION = "pickRegion";
+		public const string MESSAGE_ATTACK = "attack";
+		public const string MESSAGE_ABCD_QUESTION = "questionABCD";
+		public const string MESSAGE_GAME_OVER = "gameOver";
+		public const string MESSAGE_FINAL_ANSWERS_NUMERIC = "finalAnswersNumeric";
+		public const string MESSAGE_FINAL_ANSWERS_ABCD = "finalanswersABCD";
+		public const string MESSAGE_CONNECTED_FIRST_PLAYER = "connect1";
+		public const string MESSAGE_CONNECTED_SECOND_PLAYER = "connect2";
 
-		public const string PREFIX_ASSIGN = "assign_";
-		public const string PREFIX_GAMEUPDATE = "gameupdate_";
-		public const string PREFIX_QUESTIONABCD = "questionAW_";
-		public const string PREFIX_QUESTIONNUMBER = "questionNUM_";
-		public const string PREFIX_ANSWER = "answer_";
-		public const string PREFIX_FINALANSWERS = "finalanswers_";
-		public const string PREFIX_PICKREGION = "pickregion_";
-		public const string PREFIX_PICKED = "picked_";
-		public const string PREFIX_ATTACK = "attack_";
-		public const string PREFIX_DISCONNECTED = "disconnected_";
-		public const string PREFIX_GAMEOVER = "gameover_";
 
 		public const int DELAY_FASTUPDATE_MS = 1000;
 		public const int DELAY_FIRSTROUND_FIRSTQUESTION = 3000;
@@ -244,8 +246,8 @@ namespace Commons
 		public const int MS_MULTIPLIER = 10;
 
 		public const string CONFIG_FILENAME = "config.cfg";
-		public const string QUESTIONS_ABCD_FILENAME = "questionsABCD.txt";
-		public const string QUESTIONS_NUMS_FILENAME = "questionsNumber.txt";
+		public const string QUESTIONS_ABCD_FILENAME = "questionsABCD.json";
+		public const string QUESTIONS_NUMS_FILENAME = "questionsNumber.json";
 
 		public const string CLIENT_TIME_LEFT = "Time left (sec): {0}";
 

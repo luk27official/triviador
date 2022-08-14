@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Commons;
+using Newtonsoft.Json;
 
 namespace client
 {
@@ -37,13 +38,13 @@ namespace client
         /// <summary>
         /// Constructor for QuestionNumericWindow.
         /// </summary>
-        /// <param name="data">Question from the server.</param>
+        /// <param name="question">Question from the server.</param>
         /// <param name="stream">Stream used to communicate between the server and this client.</param>
         /// <param name="clientID">Current client identifier.</param>
-        public QuestionNumericWindow(string data, NetworkStream stream, int clientID)
+        public QuestionNumericWindow(QuestionNumeric question, NetworkStream stream, int clientID)
         {
             InitializeComponent();
-            ParseQuestion(data);
+            ParseQuestion(question);
             this.answerTxtBox.Focus();
             this._millisecondsElapsed = 0;
             this._millisecondsMaximum = Constants.QUESTION_TIME;
@@ -52,7 +53,10 @@ namespace client
             this._clientID = clientID;
             this._timer = new System.Timers.Timer(Constants.MS_MULTIPLIER);
             TimerHandler();
-            this._stopwatch = new();
+            this._stopwatch = new(); 
+            this.p1label.Visibility = Visibility.Hidden;
+            this.p2label.Visibility = Visibility.Hidden;
+            this.playerWinlabel.Visibility = Visibility.Hidden;
             _stopwatch.Start();
         }
 
@@ -73,7 +77,7 @@ namespace client
         /// <param name="e">Event arguments.</param>
         private void ChangeTimerLabel(object? source, ElapsedEventArgs e)
         {
-            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format("Time left: {0} seconds", (_millisecondsMaximum - _millisecondsElapsed)/100); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.timerLabel.Content = String.Format(Constants.TIMELEFT, (_millisecondsMaximum - _millisecondsElapsed)/100); });
 
             _millisecondsElapsed++;
 
@@ -82,6 +86,40 @@ namespace client
                 _timer.Stop();
                 _timer.Dispose();
                 TimeExpired();
+            }
+        }
+
+        /// <summary>
+        /// Method which receives some message from the server calls a method to process it.
+        /// </summary>
+        private void ReceiveAndProcessMessage()
+        {
+            string message = MessageController.ReceiveMessage(this._networkStream);
+            ProcessMessage(message);
+        }
+
+        /// <summary>
+        /// Method which processes the message based on the message type.
+        /// </summary>
+        /// <param name="message">Message from the server.</param>
+        private void ProcessMessage(string message)
+        {
+            BasicMessage? msgFromJson = JsonConvert.DeserializeObject<BasicMessage>(message);
+            if (msgFromJson == null) return;
+
+            switch (msgFromJson.Type)
+            {
+                case Constants.MESSAGE_DISCONNECT:
+                    ClientCommon.HandleEnemyDisconnect();
+                    break;
+                case Constants.MESSAGE_FINAL_ANSWERS_NUMERIC:
+                    if(msgFromJson.AnswerDetails != null && msgFromJson.AnswerDetails.Answers != null && msgFromJson.AnswerDetails.Times != null)
+                    {
+                        ShowFinalAnswers(msgFromJson.AnswerDetails.Answers[0], msgFromJson.AnswerDetails.Answers[1], msgFromJson.AnswerDetails.Times[0], msgFromJson.AnswerDetails.Times[1], msgFromJson.PlayerID, msgFromJson.AnswerDetails.Correct);
+                    }
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -96,42 +134,34 @@ namespace client
             if (!_questionAnswered) //make sure we sent something
             {
                 _stopwatch.Stop();
-                string message = Constants.PREFIX_ANSWER + _clientID + "_0_" + _stopwatch.ElapsedMilliseconds;
+                string message = "";
+                if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_ANSWER, p1ans: "0", p1time: _stopwatch.ElapsedMilliseconds.ToString());
+                else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_ANSWER, p2ans: "0", p2time: _stopwatch.ElapsedMilliseconds.ToString());
                 byte[] msg = Encoding.ASCII.GetBytes(message);
                 _networkStream.Write(msg, 0, msg.Length);
             }
             _questionAnswered = true;
 
-            Byte[] data;
-            data = new Byte[Constants.DEFAULT_BUFFER_SIZE];
-            String responseData = String.Empty;
-            Int32 bytes;
-            while (true) //wait for the question
-            {
-                bytes = _networkStream.Read(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-                if (responseData.StartsWith(Constants.PREFIX_DISCONNECTED))
-                {
-                    ClientCommon.HandleEnemyDisconnect();
-                }
-                else if (responseData.StartsWith(Constants.PREFIX_FINALANSWERS)) //handle question numeric
-                {
-                    ShowFinalAnswers(responseData);
-                    break;
-                }
-            }
+            ReceiveAndProcessMessage();
         }
 
         /// <summary>
         /// Updates the window with the answer and player information.
         /// </summary>
-        /// <param name="data">Response data containing the answers and information about players.</param>
-        private void ShowFinalAnswers(string data)
+        /// <param name="p1ans">Player 1 answer.</param>
+        /// <param name="p2ans">Player 2 answer.</param>
+        /// <param name="p1time">Player 1 answer time.</param>
+        /// <param name="p2time">Player 2 answer time.</param>
+        /// <param name="winnerID">Winner client identifier.</param>
+        /// <param name="correctAns">Correct answer.</param>
+        private void ShowFinalAnswers(string? p1ans, string? p2ans, string? p1time, string? p2time, string? winnerID, string? correctAns)
         {
-            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
-            App.Current.Dispatcher.Invoke((Action)delegate { this.p1label.Content = String.Format(Constants.QUESTION_RESULT, "1", splitData[1], splitData[3]); });
-            App.Current.Dispatcher.Invoke((Action)delegate { this.p2label.Content = String.Format(Constants.QUESTION_RESULT, "2", splitData[2], splitData[4]); });
-            App.Current.Dispatcher.Invoke((Action)delegate { this.playerWinlabel.Content = String.Format(Constants.QUESTION_WINNER, splitData[5], Int32.Parse(splitData[6])); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.p1label.Content = String.Format(Constants.QUESTION_RESULT, "1", p1ans, p1time); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.p2label.Content = String.Format(Constants.QUESTION_RESULT, "2", p2ans, p2time); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.playerWinlabel.Content = String.Format(Constants.QUESTION_WINNER, correctAns, winnerID); });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.playerWinlabel.Visibility = Visibility.Visible; });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.p1label.Visibility = Visibility.Visible; });
+            App.Current.Dispatcher.Invoke((Action)delegate { this.p2label.Visibility = Visibility.Visible; });
 
             //wait some time so the clients can see the final answers
             Thread.Sleep(Constants.DELAY_SHOWANSWERS);
@@ -142,10 +172,9 @@ namespace client
         /// Method updating the form label with the question.
         /// </summary>
         /// <param name="data">Data from the server containing the question and options.</param>
-        private void ParseQuestion(string data)
+        private void ParseQuestion(QuestionNumeric data)
         {
-            string[] splitData = data.Split(Constants.GLOBAL_DELIMITER);
-            this.questionLabel.Text = splitData[1];
+            this.questionLabel.Text = data.Content;
         }
 
         /// <summary>
@@ -159,7 +188,9 @@ namespace client
             {
                 ans = 0; //if entered invalid value pass an 0
             }
-            string message = Constants.PREFIX_ANSWER + _clientID + Constants.GLOBAL_DELIMITER + ans.ToString() + Constants.GLOBAL_DELIMITER + _stopwatch.ElapsedMilliseconds;
+            string message = "";
+            if (_clientID == 1) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_ANSWER, p1ans: ans.ToString(), p1time: _stopwatch.ElapsedMilliseconds.ToString());
+            else if (_clientID == 2) message = MessageController.EncodeMessageIntoJSONWithPrefix(Constants.MESSAGE_NUMERIC_ANSWER, p2ans: ans.ToString(), p2time: _stopwatch.ElapsedMilliseconds.ToString());
             byte[] msg = Encoding.ASCII.GetBytes(message);
             _networkStream.Write(msg, 0, msg.Length);
         }

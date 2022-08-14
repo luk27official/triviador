@@ -11,15 +11,15 @@ namespace Commons
     /// </summary>
     public class GameInformation
     {
-        public int[] Points { get; private set; }
+        public int[] Points { get; set; }
 
-        public List<Constants.Region>[] Regions { get; private set; }
+        public List<Constants.Region>[] Regions { get; set; }
 
-        public int[] BaseHealths { get; private set; }
+        public int[] BaseHealths { get; set; }
 
-        public Constants.Region[] Bases { get; private set; }
+        public Constants.Region[] Bases { get; set; }
 
-        public List<Constants.Region> HighValueRegions { get; private set; }
+        public List<Constants.Region> HighValueRegions { get; set; }
 
         public GameInformation()
         {
@@ -103,120 +103,6 @@ namespace Commons
         public void DecreaseBaseHealth(int playerID)
         {
             this.BaseHealths[playerID - 1] -= 1;
-        }
-
-        /// <summary>
-        /// Method encoding the properties of this class returning a string with this data.
-        /// </summary>
-        /// <returns>Encoded class information in a specified format.</returns>
-        public string EncodeInformationToString()
-        {
-            StringBuilder sb = new();
-            sb.Append(Constants.PREFIX_GAMEUPDATE);
-
-            //gameupdate_P1pts_P2pts_P1Health_P2Health_P1Base_P2Base_P1Regions_P2Regions_HighValueRegions
-            //gameupdate_ 1500 _ 1700 _ 3 _ 2 _ 13 _ 9 _ 13,4,5, _ 9,6,7, _ 6,4,
-
-            for (int i = 0; i < Constants.MAX_PLAYERS; i++)
-            {
-                sb.Append(Points[i]);
-                sb.Append(Constants.GLOBAL_DELIMITER);
-            }
-
-            for (int i = 0; i < Constants.MAX_PLAYERS; i++)
-            {
-                sb.Append(BaseHealths[i]);
-                sb.Append(Constants.GLOBAL_DELIMITER);
-            }
-
-            for (int i = 0; i < Constants.MAX_PLAYERS; i++)
-            {
-                sb.Append(Bases[i]);
-                sb.Append(Constants.GLOBAL_DELIMITER);
-            }
-
-            foreach (Constants.Region region in Regions[0])
-            {
-                sb.Append(region);
-                sb.Append(',');
-            }
-            sb.Append(Constants.GLOBAL_DELIMITER);
-
-            foreach (Constants.Region region in Regions[1])
-            {
-                sb.Append(region);
-                sb.Append(',');
-            }
-            sb.Append(Constants.GLOBAL_DELIMITER);
-
-            foreach (Constants.Region region in HighValueRegions)
-            {
-                sb.Append(region);
-                sb.Append(',');
-            }
-
-            return sb.ToString();
-        }
-
-        /// <summary>
-        /// Method used by client/server to update the game information from the encoded string.
-        /// </summary>
-        /// <param name="message">Information to be decoded.</param>
-        public void UpdateGameInformationFromMessage(string message)
-        {
-            //gameupdate_P1pts_P2pts_P1Health_P2Health_P1Base_P2Base_P1Regions_P2Regions_HighValueRegions
-            //gameupdate_ 1500 _ 1700 _ 3 _ 2 _ 13 _ 9 _ 13,4,5, _ 9,6,7, _ 6,4,
-            string[] data = message.Split(Constants.GLOBAL_DELIMITER);
-
-            int dataIndex = 1;
-
-            for (int i = 0; i < Constants.MAX_PLAYERS; i++)
-            {
-                this.Points[i] = Int32.Parse(data[dataIndex]);
-                dataIndex++;
-            }
-
-            for (int i = 0; i < Constants.MAX_PLAYERS; i++)
-            {
-                this.BaseHealths[i] = Int32.Parse(data[dataIndex]);
-                dataIndex++;
-            }
-
-            for (int i = 0; i < Constants.MAX_PLAYERS; i++)
-            {
-                if (Enum.TryParse(data[dataIndex], out Constants.Region regBase)) //this should happen every time
-                {
-                    this.Bases[i] = regBase;
-                    dataIndex++;
-                }
-            }
-
-            for (int i = 0; i < Constants.MAX_PLAYERS; i++)
-            {
-                string[] regions = data[dataIndex].Split(',');
-
-                List<Constants.Region> regionList = new();
-
-                foreach (string s in regions)
-                {
-                    if (Enum.TryParse(s, out Constants.Region reg))
-                    {
-                        regionList.Add(reg);
-                    }
-                }
-
-                this.Regions[i] = regionList;
-                dataIndex++;
-            }
-
-            string[] hvregions = data[dataIndex].Split(',');
-            foreach (string s in hvregions)
-            {
-                if (Enum.TryParse(s, out Constants.Region reg))
-                {
-                    if (!this.HighValueRegions.Contains(reg)) this.HighValueRegions.Add(reg);
-                }
-            }
         }
     }
 }

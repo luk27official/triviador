@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\common\common.csproj" />
   </ItemGroup>
 
@@ -20,7 +24,13 @@
     <None Update="config.cfg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="questionsABCD.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="questionsABCD.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="questionsNumber.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="questionsNumber.txt">
