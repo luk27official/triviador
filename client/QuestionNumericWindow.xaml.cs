@@ -95,7 +95,6 @@ namespace client
         private void ReceiveAndProcessMessage()
         {
             string message = MessageController.ReceiveMessage(this._networkStream);
-            Debug.WriteLine(message);
             ProcessMessage(message);
         }
 

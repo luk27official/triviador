@@ -459,8 +459,6 @@ namespace server
         {
 			byte[] msg = System.Text.Encoding.ASCII.GetBytes(message);
 
-			//TODO: handle disconnect
-
 			int i = 0;
 			foreach (TcpClient client in _acceptedClients)
 			{
