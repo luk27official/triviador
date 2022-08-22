@@ -45,9 +45,9 @@ After the time expires, both players' answers and answer times are sent back to 
    
 The server currently requires multiple files to run. Before running, the administrator must prepare the following files inside the directory with the executable:
 
-`questionsABCD.txt` - contains questions with the possible answers, first one being the correct
+`questionsABCD.json` - contains questions with the possible answers, first one being the correct
 
-`questionsNumber.txt` - contains numeric questions with the correct answer
+`questionsNumber.json` - contains numeric questions with the correct answer
 
 `config.cfg` - here the administrator specifies the used IP address and port
 
